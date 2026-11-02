@@ -162,7 +162,7 @@ func TestFleetEndToEnd(t *testing.T) {
 
 	t.Run("drift before first push reports pending changes", func(t *testing.T) {
 		out := e.must(4, "drift", "box")
-		for _, want := range []string{"create    ~/.config/fleet/FLEET.md", "merge     ~/.claude/settings.json", "~/.claude/skills/demo/"} {
+		for _, want := range []string{"create    ~/.config/fleet/FLEET.md", "merge     ~/.codex/config.toml", "~/.claude/skills/demo/"} {
 			if !strings.Contains(out, want) {
 				t.Errorf("drift output missing %q:\n%s", want, out)
 			}
@@ -260,7 +260,10 @@ func TestFleetEndToEnd(t *testing.T) {
 				t.Errorf("audit log missing %s", want)
 			}
 		}
-		if hosts, _ := os.ReadFile(filepath.Join(e.home, ".local/state/fleet/known_hosts")); !strings.Contains(string(hosts), "127.0.0.1]:"+e.port) {
+		// ssh-keygen resolves both plaintext and hashed known_hosts entries.
+		hosts := filepath.Join(e.home, ".local/state/fleet/known_hosts")
+		match := run(t, e.home, "ssh-keygen", "-F", "[127.0.0.1]:"+e.port, "-f", hosts)
+		if strings.TrimSpace(match) == "" {
 			t.Error("host key not pinned in fleet's own known_hosts")
 		}
 	})
