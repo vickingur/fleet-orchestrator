@@ -5,7 +5,6 @@
 Clone this repository, install the Go version declared in `go.mod`, and run:
 
 ```sh
-make example
 make build
 ./dist/fleet version
 ```
@@ -14,17 +13,25 @@ make build
 
 For the full development gate, install `golangci-lint` v2.10.1, then run `make check`. The privacy target requires a Git checkout with staged files. A source archive can instead be checked with `python3 scripts/check-shareable.py`; use `--source-only` only when deliberately excluding generated `dist/` output.
 
-## Prepare a private deployment checkout
+## Set up your fleet config
 
-Use a different checkout for actual operations. Keep its real `fleet.toml`, `FLEET.md` and customized `home/` private. Both inventory and generated guide are ignored, but files under `home/` are tracked: do not push deployment customization to the reusable repository.
+Fleet deploys a fleet config that you keep in your own private repository, apart from this source. Start it from the fictional example at the default location, where fleet finds it from any directory:
 
-1. Copy `fleet.example.toml` to `fleet.toml` in that private checkout.
-2. Replace the fictional node fields with your own, using the configuration guide.
-3. Review each manifest entry and remove example skills you do not need. Manifest checks and fixes are shell commands and must be trusted.
-4. Run `go run ./cmd/fleet docs` to generate the private node guide.
-5. Run `make build`, then use the binary from this checkout. `FLEET_SRC` can point to the private checkout when invoking the binary from another directory.
+```sh
+cp -R examples/config ~/.local/share/fleet/config
+cd ~/.local/share/fleet/config
+git init
+```
+
+To keep it elsewhere, set `FLEET_CONFIG` to its path in your shell profile; fleet also uses the config it runs inside.
+
+1. Replace the fictional nodes in `fleet.toml` with your own, using the configuration guide.
+2. Review each manifest entry and remove example skills you do not need. Manifest checks and fixes are shell commands and must be trusted.
+3. Run `fleet docs` to generate the node guide, then `fleet check`.
+4. Commit, and push only to a private remote: the inventory and guide describe your machines.
+5. Run `make build` in this checkout and use `./dist/fleet` until fleet is installed. `push` builds fleet for each node from this checkout; it finds it from the directory you run in, `FLEET_SRC`, or the path recorded by the last push.
 6. Confirm ordinary OpenSSH access works under your account. Set `FLEET_SELF` to the inventory name of this local machine for operation without Tailscale. This identifies which commands execute locally; it must not name the remote destination. Configure credentials and host trust separately.
-7. Review `fleet doctor <node>` and `fleet drift <node>` before choosing to deploy with `fleet push <node>`. If you use Tailscale, `fleet ls` additionally shows tailnet status; it is not an SSH reachability check.
+7. Review `fleet doctor <node>` and `fleet drift <node>` before choosing to deploy with `fleet push <node>`. Push this machine first: it installs `fleet` on your PATH. If you use Tailscale, `fleet ls` additionally shows tailnet status; it is not an SSH reachability check.
 
 A push installs the bundle and binary and applies your configured shared layer. It may merge settings, replace managed files or run manifest fixes. Backups and an audit log are maintained in Fleet's state directory; read the generated guide for locations. This guide describes deployment steps; repository checks do not perform them.
 

@@ -552,7 +552,7 @@ func (m Model) onNodesKey(key string) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if !m.b.IsController() {
-			m.flash = "push runs on the controller, from the fleet repo"
+			m.flash = "push runs on the controller, with the fleet config and source"
 			return m, nil
 		}
 		m.mode, m.confirm, m.confirmTarget = modeConfirm, confirmPush, it
@@ -653,7 +653,7 @@ func (m Model) onConfirmKey(key string) (tea.Model, tea.Cmd) {
 			paths := m.conflicts(it.node)
 			return m.run("keep "+it.node+"'s version", true, func() (string, error) {
 				out, err := m.b.Adopt(m.ctx, it.node, paths)
-				return out + "\n\nThe repo now has " + it.node + "'s version. Review it with git diff in the fleet repo, commit, then push to the other machines.", err
+				return out + "\n\nThe config now has " + it.node + "'s version. Review it with git diff in the fleet config, commit, then push to the other machines.", err
 			})
 		}
 		return m.run("remove "+it.target(), true, func() (string, error) {
@@ -724,7 +724,7 @@ func (m Model) run(title string, refresh bool, fn func() (string, error)) (tea.M
 
 func (m Model) showPlan(node string) (tea.Model, tea.Cmd) {
 	if !m.b.IsController() {
-		m.flash = "drift runs on the controller, from the fleet repo"
+		m.flash = "drift runs on the controller, with the fleet config and source"
 		return m, nil
 	}
 	r, ok := m.plans[node]

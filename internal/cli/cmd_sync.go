@@ -324,11 +324,15 @@ func (a *App) cmdDrift(ctx context.Context, args []string) error {
 }
 
 func (a *App) push(ctx context.Context, target string, dryRun, force, asJSON bool) error {
+	cfg, err := a.configDir()
+	if err != nil {
+		return fmt.Errorf("push runs on the controller: %w", err)
+	}
 	src, err := a.sourceDir()
 	if err != nil {
-		return fmt.Errorf("push runs on the controller from the fleet repo: %w", err)
+		return fmt.Errorf("push builds fleet from source: %w", err)
 	}
-	inv, err := bundle.LoadInventory(src)
+	inv, err := bundle.LoadInventory(cfg)
 	if err != nil {
 		return err
 	}
@@ -341,7 +345,7 @@ func (a *App) push(ctx context.Context, target string, dryRun, force, asJSON boo
 			return usagef("agent containers get the shared layer from their image; run fleet image %s", t.Node.Name)
 		}
 	}
-	version, err := bundle.Version(src)
+	version, err := bundle.Version(src, cfg)
 	if err != nil {
 		return err
 	}
@@ -349,7 +353,7 @@ func (a *App) push(ctx context.Context, target string, dryRun, force, asJSON boo
 	if err != nil {
 		return err
 	}
-	packs := &packCache{app: a, src: src, version: version, byPlatform: map[string]*packEntry{}}
+	packs := &packCache{app: a, src: src, cfg: cfg, version: version, byPlatform: map[string]*packEntry{}}
 	flags := ""
 	if force {
 		flags += " --force"
@@ -448,7 +452,7 @@ type packEntry struct {
 
 type packCache struct {
 	app        *App
-	src        string
+	src, cfg   string
 	version    string
 	mu         sync.Mutex
 	byPlatform map[string]*packEntry
@@ -468,7 +472,7 @@ func (p *packCache) get(ctx context.Context, platform bundle.Platform) ([]byte, 
 			e.err = err
 			return
 		}
-		e.data, e.err = bundle.Pack(p.src, bin, p.version)
+		e.data, e.err = bundle.Pack(p.src, p.cfg, bin, p.version)
 	})
 	return e.data, e.err
 }
@@ -479,11 +483,11 @@ func (a *App) cmdAdopt(ctx context.Context, args []string) error {
 	if len(args) < 2 {
 		return usagef("usage: fleet adopt <node> <~/path>...")
 	}
-	src, err := a.sourceDir()
+	cfg, err := a.configDir()
 	if err != nil {
-		return fmt.Errorf("adopt writes into the fleet repo: %w", err)
+		return fmt.Errorf("adopt writes into the fleet config: %w", err)
 	}
-	inv, err := bundle.LoadInventory(src)
+	inv, err := bundle.LoadInventory(cfg)
 	if err != nil {
 		return err
 	}
@@ -491,7 +495,7 @@ func (a *App) cmdAdopt(ctx context.Context, args []string) error {
 	if err != nil || len(targets) != 1 {
 		return usagef("adopt needs exactly one source target")
 	}
-	manifestData, err := os.ReadFile(filepath.Join(src, "home", "manifest.toml"))
+	manifestData, err := os.ReadFile(filepath.Join(cfg, "home", "manifest.toml"))
 	if err != nil {
 		return err
 	}
@@ -504,7 +508,7 @@ func (a *App) cmdAdopt(ctx context.Context, args []string) error {
 		return err
 	}
 	for _, path := range args[1:] {
-		dest, err := adoptDestination(man, filepath.Join(src, "home"), path)
+		dest, err := adoptDestination(man, filepath.Join(cfg, "home"), path)
 		if err != nil {
 			return err
 		}
@@ -515,7 +519,7 @@ func (a *App) cmdAdopt(ctx context.Context, args []string) error {
 		if err := os.WriteFile(dest, []byte(content), 0o644); err != nil {
 			return err
 		}
-		rel, _ := filepath.Rel(src, dest)
+		rel, _ := filepath.Rel(cfg, dest)
 		a.printf("adopted %s from %s into %s\n", path, targets[0], rel)
 	}
 	a.println("review with git diff, commit, then run: fleet push all")
@@ -568,15 +572,15 @@ func (a *App) cmdDocs(_ context.Context, args []string) error {
 	if err := parse(fs, args); err != nil {
 		return err
 	}
-	src, err := a.sourceDir()
+	cfg, err := a.configDir()
 	if err != nil {
 		return err
 	}
-	inv, err := bundle.LoadInventory(src)
+	inv, err := bundle.LoadInventory(cfg)
 	if err != nil {
 		return err
 	}
-	path := filepath.Join(src, "FLEET.md")
+	path := filepath.Join(cfg, "FLEET.md")
 	want := docs.Render(inv)
 	if *check {
 		have, _ := os.ReadFile(path)
