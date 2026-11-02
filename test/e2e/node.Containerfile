@@ -9,4 +9,6 @@ RUN useradd --create-home --shell /usr/bin/fish agent \
  && chmod 700 /home/agent/.ssh && chown agent:agent /home/agent/.ssh \
  && printf 'PasswordAuthentication no\nPermitRootLogin no\n' > /etc/ssh/sshd_config.d/fleet-test.conf
 COPY fake-claude /usr/local/bin/claude
-CMD ["/usr/sbin/sshd", "-D", "-e"]
+# Install the mounted public key with container ownership. Linux bind mounts
+# retain the runner UID, which need not match the agent UID accepted by sshd.
+CMD ["sh", "-c", "install -o agent -g agent -m 600 /tmp/fleet-e2e.pub /home/agent/.ssh/authorized_keys && exec /usr/sbin/sshd -D -e"]

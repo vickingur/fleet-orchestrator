@@ -58,7 +58,7 @@ func setup(t *testing.T) *env {
 
 	run(t, repo, "docker", "build", "-q", "-t", "fleet-e2e-node", "-f", "test/e2e/node.Containerfile", "test/e2e")
 	run(t, root, "docker", "run", "-d", "--name", e.node, "-p", "127.0.0.1::22",
-		"-v", e.key+".pub:/home/agent/.ssh/authorized_keys:ro", "fleet-e2e-node")
+		"-v", e.key+".pub:/tmp/fleet-e2e.pub:ro", "fleet-e2e-node")
 	t.Cleanup(func() { _ = exec.Command("docker", "rm", "-f", e.node).Run() })
 	port := strings.TrimSpace(run(t, root, "docker", "port", e.node, "22/tcp"))
 	e.port = port[strings.LastIndex(port, ":")+1:]
@@ -90,11 +90,13 @@ version = "fish --version"
 
 	deadline := time.Now().Add(30 * time.Second)
 	for {
-		if _, code := e.fleetRun("exec", "box", "--", "true"); code == 0 {
+		out, code := e.fleetRun("exec", "box", "--", "true")
+		if code == 0 {
 			break
 		}
 		if time.Now().After(deadline) {
-			t.Fatal("test node never accepted ssh")
+			logs, _ := exec.Command("docker", "logs", e.node).CombinedOutput()
+			t.Fatalf("test node never accepted ssh (exit %d):\n%s\nsshd log:\n%s", code, out, logs)
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
