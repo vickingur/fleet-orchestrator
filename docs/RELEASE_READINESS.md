@@ -13,11 +13,12 @@ This repository remains private. This checklist records the preparation boundary
 - [x] Local race tests, formatting, vet, lint and generated-doc checks are defined in `make check`.
 - [x] CI is configured for Linux, macOS and Docker SSH integration with read-only repository access and pinned action revisions.
 - [x] Top-level dependency notices inventoried; the unverified terminal-definition copy removed.
+- [x] Approved MIT project license added.
 
 ## Required before changing visibility
 
-- [ ] Owner confirms rights/provenance of the retained project source and chooses a project license.
-- [ ] Add the approved license and verify all needed source/data notices are present.
+- [ ] Owner confirms rights/provenance of the retained project source.
+- [ ] Verify all needed source/data notices are present.
 - [ ] Select and verify a private security-reporting route and decide the support policy.
 - [ ] Inspect the exact proposed public commit and all reachable new history for private data, including commit metadata, workflow logs and artifacts.
 - [ ] Confirm all CI jobs passed for that exact commit. Local success or a check on an earlier commit is insufficient.

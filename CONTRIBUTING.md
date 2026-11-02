@@ -1,6 +1,6 @@
 # Contributing
 
-Public contribution terms are pending selection of a project license. Until that decision, this document describes the private development workflow and grants no additional rights.
+Fleet is licensed under the [MIT License](LICENSE).
 
 Use a feature branch and keep one behavior change per review. Start from a clean checkout and run `make example`. Keep the development inventory fictional; use another checkout for deployment configuration.
 

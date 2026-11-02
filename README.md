@@ -2,7 +2,7 @@
 
 A Go CLI for managing machines over SSH, synchronizing agent configuration, and managing agent containers, with a terminal UI and optional Tailscale discovery. Fleet provides command execution, configuration drift checks, conflict-aware updates, backups and restoration, and JSON output for automation.
 
-This repository is being prepared for public release. It contains reusable source and fictional examples. No project license has been selected yet; see [provenance and licensing](docs/PROVENANCE.md).
+This repository is being prepared for public release. It contains reusable source and fictional examples. Fleet is licensed under [MIT](LICENSE); see [provenance and licensing](docs/PROVENANCE.md).
 
 ## Build and check
 

@@ -2,7 +2,7 @@
 
 This repository begins with a sanitized source snapshot of an existing private Fleet implementation. Original deployment history, commit metadata, personal configuration, operational notes and runtime data were excluded. The new history contains only the reusable tree and release preparation.
 
-The supplied private source had no root project license. No license or copyright ownership claim has been assigned during preparation. Before public release, the owner must confirm the rights to distribute the retained implementation and choose a project license. Merely creating this private repository does not resolve that decision.
+Fleet is licensed under the [MIT License](../LICENSE), copyright (c) 2026 Victor Poputnikov. Third-party components retain their own licenses and notices.
 
 ## Retained and excluded material
 
