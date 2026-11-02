@@ -39,6 +39,7 @@ Tailscale is still used for discovery/status: `fleet ls` reports unknown status 
 | `fleet exec worker -- 'uname -sm'` | Run a command under a POSIX shell |
 | `fleet ssh worker` | Resume an interactive tmux session |
 | `fleet push worker` | Deploy the configured shared layer and CLI |
+| `fleet init` | Create a fleet config with this machine as the controller |
 | `fleet check` | Validate a fleet config before pushing it |
 | `fleet restore` | List local backup sets |
 
@@ -46,7 +47,7 @@ The names in this table are fictional. `doctor` and `drift` can execute commands
 
 ## The tool and your fleet config
 
-This repository is the tool. What it deploys lives in a fleet config: your inventory, generated node guide, `home/` shared layer and optional tailnet policy, kept in its own private Git repository. Fleet looks for it through `FLEET_CONFIG`, the directory it runs in, or `~/.local/share/fleet/config`. The [installation guide](docs/INSTALLATION.md) sets one up; [`examples/config`](examples/config) is a fictional one.
+This repository is the tool. What it deploys lives in a fleet config: your inventory, generated node guide, `home/` shared layer and optional tailnet policy, kept in its own private Git repository. Fleet looks for it through `FLEET_CONFIG`, the directory it runs in, or `~/.local/share/fleet/config`, where `fleet init` creates one, or clones yours on a further controller. The [installation guide](docs/INSTALLATION.md) walks through it; [`examples/config`](examples/config) is a fictional one.
 
 | This repository | Your fleet config |
 |---|---|

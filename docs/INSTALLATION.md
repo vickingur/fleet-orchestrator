@@ -15,21 +15,20 @@ For the full development gate, install `golangci-lint` v2.10.1, then run `make c
 
 ## Set up your fleet config
 
-Fleet deploys a fleet config that you keep in your own private repository, apart from this source. Start it from the fictional example at the default location, where fleet finds it from any directory:
+Fleet deploys a fleet config that you keep in its own private repository, apart from this source. Create one for a new fleet, with this machine as its controller:
 
 ```sh
-cp -R examples/config ~/.local/share/fleet/config
-cd ~/.local/share/fleet/config
-git init
+make build
+./dist/fleet init
 ```
 
-To keep it elsewhere, set `FLEET_CONFIG` to its path in your shell profile; fleet also uses the config it runs inside.
+It lands in `~/.local/share/fleet/config`, where fleet finds it from any directory, and holds an inventory naming this machine, the generated node guide, and a starter shared layer: agent instructions that point at the guide, settings that pre-approve only fleet's inert commands, and the `fleet` skill that teaches agents to operate the fleet. `--dir` or `FLEET_CONFIG` puts it elsewhere; fleet also uses the config it runs inside. To set up a further controller for an existing fleet, `fleet init <git-url>` clones its config instead. [`examples/config`](../examples/config) is a fuller fictional config.
 
-1. Replace the fictional nodes in `fleet.toml` with your own, using the configuration guide.
-2. Review each manifest entry and remove example skills you do not need. Manifest checks and fixes are shell commands and must be trusted.
-3. Run `fleet docs` to generate the node guide, then `fleet check`.
+1. Add your other machines to `fleet.toml`, using the configuration guide.
+2. Add your own skills, settings and ensures under `home/`. Manifest checks and fixes are shell commands and must be trusted.
+3. Run `fleet docs` to regenerate the node guide, then `fleet check`.
 4. Commit, and push only to a private remote: the inventory and guide describe your machines.
-5. Run `make build` in this checkout and use `./dist/fleet` until fleet is installed. `push` builds fleet for each node from this checkout; it finds it from the directory you run in, `FLEET_SRC`, or the path recorded by the last push.
+5. Use `./dist/fleet` until fleet is installed. `push` builds fleet for each node from this checkout; it finds it from the directory you run in, `FLEET_SRC`, or the path recorded by the last push.
 6. Confirm ordinary OpenSSH access works under your account. Set `FLEET_SELF` to the inventory name of this local machine for operation without Tailscale. This identifies which commands execute locally; it must not name the remote destination. Configure credentials and host trust separately.
 7. Review `fleet doctor <node>` and `fleet drift <node>` before choosing to deploy with `fleet push <node>`. Push this machine first: it installs `fleet` on your PATH. If you use Tailscale, `fleet ls` additionally shows tailnet status; it is not an SSH reachability check.
 

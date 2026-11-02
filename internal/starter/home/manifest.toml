@@ -1,0 +1,53 @@
+# The shared layer: what every node gets, and where. Sources are relative to
+# this directory; targets are under each node's home. Merge strategies:
+#   replace  fleet owns the whole file; local edits surface as conflicts
+#   block    fleet owns one marked block; text outside it is left alone
+#   json     overlay keys merged into the file; other keys are left alone
+#   toml     same as json, for TOML files
+
+# The node guide, rendered from fleet.toml on every push.
+[[file]]
+source = "FLEET.md"
+target = "~/.config/fleet/FLEET.md"
+merge = "replace"
+
+# Instructions both agents read.
+[[file]]
+source = "instructions.md"
+target = "~/.claude/CLAUDE.md"
+merge = "block"
+
+[[file]]
+source = "instructions.md"
+target = "~/.codex/AGENTS.md"
+merge = "block"
+
+# Settings overlays: who acted, and which fleet commands need no approval.
+[[file]]
+source = "claude-settings.json"
+target = "~/.claude/settings.json"
+merge = "json"
+
+[[file]]
+source = "codex-config.toml"
+target = "~/.codex/config.toml"
+merge = "toml"
+
+[[file]]
+source = "codex-fleet.rules"
+target = "~/.codex/rules/fleet.rules"
+merge = "replace"
+
+# Skills both agents use. For skills only one of them should see, add a
+# skills/claude or skills/codex directory and a tree for it.
+[[tree]]
+source = "skills/shared"
+target = "~/.claude/skills"
+
+[[tree]]
+source = "skills/shared"
+target = "~/.codex/skills"
+
+# [[ensure]] entries establish states files alone cannot, such as an installed
+# plugin: check exits 0 when the state holds, fix establishes it. Even fleet
+# drift runs the checks, so keep them read-only.
