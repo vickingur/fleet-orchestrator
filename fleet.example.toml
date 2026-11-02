@@ -1,0 +1,23 @@
+# Fictional test inventory. These .invalid hosts cannot name live nodes.
+[[node]]
+name = "laptop"
+host = "laptop.example.invalid"
+user = "operator"
+os = "darwin"
+role = "controller"
+
+[[node]]
+name = "worker"
+host = "worker.example.invalid"
+user = "operator"
+os = "linux"
+role = "member"
+runtime = "podman"
+
+[[tool]]
+name = "claude"
+version = "claude --version"
+
+[[tool]]
+name = "codex"
+version = "codex --version"

@@ -1,0 +1,37 @@
+# Agent container: Claude Code, Codex and the fleet shared layer, running as a
+# non-root user. Build context is an installed fleet bundle (fleet image <node>).
+FROM docker.io/library/debian:trixie-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      ca-certificates curl git openssh-client procps less jq ripgrep tar gzip xz-utils python3 ncurses-bin \
+ && curl -fsSL https://tailscale.com/install.sh | sh \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --create-home --shell /bin/bash agent
+USER agent
+WORKDIR /home/agent
+ENV PATH=/home/agent/.local/bin:$PATH
+# Inside the container tailscaled runs in userspace, so SSH to other nodes
+# goes through it and the CLI talks to its private socket.
+ENV FLEET_TAILSCALE_SOCKET=/tmp/tailscale/tailscaled.sock \
+    FLEET_SSH_PROXY="tailscale --socket=/tmp/tailscale/tailscaled.sock nc %h %p"
+
+# Claude Code via its native installer.
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# Codex as the static musl release binary for this machine's architecture.
+RUN arch="$(uname -m)" \
+ && case "$arch" in x86_64|aarch64) ;; *) echo "unsupported architecture $arch" >&2; exit 1 ;; esac \
+ && mkdir -p /home/agent/.local/bin \
+ && curl -fsSL "https://github.com/openai/codex/releases/latest/download/codex-$arch-unknown-linux-musl.tar.gz" \
+    | tar -xz -C /home/agent/.local/bin \
+ && mv "/home/agent/.local/bin/codex-$arch-unknown-linux-musl" /home/agent/.local/bin/codex
+
+COPY --chown=agent:agent . /home/agent/.local/share/fleet/bundle
+RUN ln -sfn /home/agent/.local/share/fleet/bundle/bin/fleet /home/agent/.local/bin/fleet \
+ && mkdir -p /home/agent/work \
+ && fleet apply
+
+WORKDIR /home/agent/work
+ENTRYPOINT ["/home/agent/.local/share/fleet/bundle/container/entrypoint.sh"]

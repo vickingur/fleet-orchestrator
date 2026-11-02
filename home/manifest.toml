@@ -1,0 +1,41 @@
+# Fictional shared layer. No plugin installers, credentials or personal settings.
+[[file]]
+source = "FLEET.md"
+target = "~/.config/fleet/FLEET.md"
+merge = "replace"
+
+[[file]]
+source = "instructions.md"
+target = "~/.claude/CLAUDE.md"
+merge = "block"
+
+[[file]]
+source = "instructions.md"
+target = "~/AGENTS.md"
+merge = "block"
+
+[[file]]
+source = "claude-settings.json"
+target = "~/.claude/settings.json"
+merge = "json"
+
+[[file]]
+source = "codex-config.toml"
+target = "~/.codex/config.toml"
+merge = "toml"
+
+[[tree]]
+source = "skills/shared"
+target = "~/.claude/skills"
+
+[[tree]]
+source = "skills/shared"
+target = "~/.codex/skills"
+
+[[tree]]
+source = "skills/claude"
+target = "~/.claude/skills"
+
+[[tree]]
+source = "skills/codex"
+target = "~/.codex/skills"

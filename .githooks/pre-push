@@ -1,0 +1,6 @@
+#!/bin/sh
+# Refuse to push a red tree. The gate is the whole tree, not the touched files.
+set -e
+cd "$(git rev-parse --show-toplevel)"
+echo "pre-push: make check"
+make check

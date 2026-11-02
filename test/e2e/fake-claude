@@ -1,0 +1,26 @@
+#!/bin/sh
+# Stand-in for the claude CLI on the e2e node: just enough of the plugin and
+# marketplace commands to exercise fleet's ensure rules over SSH, including
+# that a marketplace must be added before it can be updated.
+plugins="$HOME/.fake-claude-plugins"
+markets="$HOME/.fake-claude-marketplaces"
+touch "$plugins" "$markets"
+case "$1 $2 $3" in
+  "plugin marketplace list")
+    cat "$markets" ;;
+  "plugin marketplace add")
+    name=${4#*/}
+    grep -qx "$name" "$markets" || echo "$name" >> "$markets" ;;
+  "plugin marketplace update")
+    grep -qx "$4" "$markets" || { echo "Marketplace '$4' not found" >&2; exit 1; } ;;
+  "plugin list --json")
+    printf '['
+    sep=''
+    while IFS= read -r id; do printf '%s{"id": "%s", "enabled": true}' "$sep" "$id"; sep=','; done < "$plugins"
+    printf ']\n' ;;
+  "plugin install "*)
+    grep -qx "$3" "$plugins" || echo "$3" >> "$plugins"
+    echo "installed $3" ;;
+  *)
+    echo "fake claude: unsupported: $*" >&2; exit 2 ;;
+esac

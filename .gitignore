@@ -1,0 +1,12 @@
+/dist/
+/fleet.toml
+/FLEET.md
+/.env
+/.env.*
+/private/
+*.key
+*.pem
+*.log
+*.jsonl
+.DS_Store
+__pycache__/

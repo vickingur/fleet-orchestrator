@@ -1,0 +1,35 @@
+// Fictional policy example. Review and adapt before any deployment.
+// No policy is installed by this project's checks.
+//
+// Model: the owner's machines stay user-owned (no tags needed). Agent
+// containers join as tag:agent. They can reach each other, never the
+// owner's machines, so a misbehaving agent is contained to its sandbox.
+{
+	"tagOwners": {
+		"tag:agent": ["autogroup:admin"],
+	},
+
+	"grants": [
+		// The owner's devices reach everything, including agent containers.
+		{"src": ["autogroup:member"], "dst": ["*"], "ip": ["*"]},
+		// Agent containers reach each other only.
+		{"src": ["tag:agent"], "dst": ["tag:agent"], "ip": ["*"]},
+	],
+
+	"ssh": [
+		// Owner into own machines as a normal user.
+		{"action": "accept", "src": ["autogroup:member"], "dst": ["autogroup:self"], "users": ["autogroup:nonroot"]},
+		// Root on own machines needs a fresh login within the last 12 hours.
+		{"action": "check", "src": ["autogroup:member"], "dst": ["autogroup:self"], "users": ["root"], "checkPeriod": "12h"},
+		// Owner into agent containers, which run as the "agent" user.
+		{"action": "accept", "src": ["autogroup:member"], "dst": ["tag:agent"], "users": ["agent"]},
+		// Agents into other agents, for multi-agent work.
+		{"action": "accept", "src": ["tag:agent"], "dst": ["tag:agent"], "users": ["agent"]},
+	],
+
+	// Checked by Tailscale when the policy is saved: agents must not reach
+	// the owner's machines (laptop, worker).
+	"tests": [
+		{"src": "tag:agent", "deny": ["192.0.2.13:22", "192.0.2.14:22", "192.0.2.13:443", "192.0.2.14:443"]},
+	],
+}
