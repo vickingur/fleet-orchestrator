@@ -508,6 +508,11 @@ func (a *App) cmdAdopt(ctx context.Context, args []string) error {
 		return err
 	}
 	for _, path := range args[1:] {
+		// The shell expands an unquoted ~ to this machine's home before fleet
+		// sees it; the node's file is at the same place under its own home.
+		if rel, ok := strings.CutPrefix(path, a.Home+"/"); ok {
+			path = "~/" + rel
+		}
 		dest, err := adoptDestination(man, filepath.Join(cfg, "home"), path)
 		if err != nil {
 			return err
@@ -526,7 +531,7 @@ func (a *App) cmdAdopt(ctx context.Context, args []string) error {
 	return nil
 }
 
-// adoptDestination maps a managed target path back to its file in the repo.
+// adoptDestination maps a managed target path back to its file in the config.
 // Only whole-file rules can be adopted; merged files are edited in the overlay.
 func adoptDestination(man *syncer.Manifest, home, target string) (string, error) {
 	if !strings.HasPrefix(target, "~/") || path.Clean(target) != target || strings.Contains(target, "/../") || strings.HasSuffix(target, "/..") {
@@ -537,7 +542,7 @@ func adoptDestination(man *syncer.Manifest, home, target string) (string, error)
 			continue
 		}
 		if f.Merge != syncer.MergeReplace {
-			return "", fmt.Errorf("%s is merged (%s), not owned; edit home/%s in the repo instead", target, f.Merge, f.Source)
+			return "", fmt.Errorf("%s is merged (%s), not owned; edit home/%s in the config instead", target, f.Merge, f.Source)
 		}
 		return filepath.Join(home, f.Source), nil
 	}
