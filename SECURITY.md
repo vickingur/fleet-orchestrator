@@ -10,7 +10,7 @@ Fleet executes trusted commands and synchronizes configuration under the user's 
 - Ordinary SSH operations disable agent/X11 forwarding and clear configured port forwards. The Codex attachment command intentionally opens a dedicated local tunnel and uses a token handshake.
 - Agent containers use a restricted runtime configuration. For containers joined to Tailscale, tailnet reachability also depends on the deployed policy. Containers spawned without tailnet enrollment still have their ordinary container networking. The example policy is not automatically installed and is not evidence of the state of any live network.
 - Drift can run configured ensure checks. A dry-run label does not make arbitrary manifest commands safe.
-- Generated deployment bundles include inventory and the controller source path. Backups, registry, credentials and audit logs are private data.
+- A fleet config is private: its inventory, generated guide and policy map machines, accounts, SSH identities and network addresses, and its shared layer is code agents run. Keep it in a repository with a private remote, never in this repository or a fork. Generated deployment bundles include the inventory and the controller source path. Backups, registry, credentials and audit logs are private data too.
 - Container recipes fetch upstream installers and a latest tool release. A reproducible, version-pinned container supply chain remains release work.
 
 ## Reporting

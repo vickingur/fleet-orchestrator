@@ -58,12 +58,15 @@ Add `--json` to ls, doctor, drift, containers and exec for machine-readable outp
 3. Shared agent config is owned by the fleet config on the controller. Never hand-edit
    a managed file on a node: the next push reports it as a conflict. Change the config,
    run `fleet check`, then `fleet push all`.
-4. Prefer an agent container for risky or long experiments. It has no access to the
+4. The fleet config and this guide describe private machines. Never copy them, or values
+   from them such as host names, users, addresses or policy, into a public repository,
+   issue or pull request, the fleet tool's own repository included.
+5. Prefer an agent container for risky or long experiments. It has no access to the
    host's files, runs without capabilities, and can be thrown away with `fleet rm`.
-5. For tailnet status use `fleet ls`; for SSH reachability use `fleet doctor <node>`.
+6. For tailnet status use `fleet ls`; for SSH reachability use `fleet doctor <node>`.
    Doctor executes configured version commands, so review them first. Do not retry
    unreachable nodes in a loop.
-6. A job longer than a few minutes runs with `fleet exec --detach`, then short `fleet exec` calls
+7. A job longer than a few minutes runs with `fleet exec --detach`, then short `fleet exec` calls
    check on it; a foreground command is stopped after `--timeout`. Files move through stdin
    and stdout: `fleet exec mac -- 'cat > ~/f' < f` and `fleet exec mac -- 'cat ~/f' > f` are byte-exact.
 

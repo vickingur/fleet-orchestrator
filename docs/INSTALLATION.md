@@ -15,7 +15,11 @@ For the full development gate, install `golangci-lint` v2.10.1, then run `make c
 
 ## Set up your fleet config
 
-Fleet deploys a fleet config that you keep in its own private repository, apart from this source. Create one for a new fleet, with this machine as its controller:
+Fleet deploys a fleet config that you keep in its own repository, apart from this source.
+
+> **The fleet config is private.** Its inventory, guide and policy name your machines, accounts, SSH identities and tailnet addresses, and its shared layer is what your agents run with. Only ever push it to a private remote. Never commit it to this repository or a fork, and never attach it, a deployment bundle or a backup to a public issue or pull request.
+
+Create one for a new fleet, with this machine as its controller:
 
 ```sh
 make build
@@ -27,7 +31,7 @@ It lands in `~/.local/share/fleet/config`, where fleet finds it from any directo
 1. Add your other machines to `fleet.toml`, using the configuration guide.
 2. Add your own skills, settings and ensures under `home/`. Manifest checks and fixes are shell commands and must be trusted.
 3. Run `fleet docs` to regenerate the node guide, then `fleet check`.
-4. Commit, and push only to a private remote: the inventory and guide describe your machines.
+4. Commit, and push only to a private remote, for example one created with `gh repo create <name> --private --source . --push`. Check the visibility before the first push.
 5. Use `./dist/fleet` until fleet is installed. `push` builds fleet for each node from this checkout; it finds it from the directory you run in, `FLEET_SRC`, or the path recorded by the last push.
 6. Confirm ordinary OpenSSH access works under your account. Set `FLEET_SELF` to the inventory name of this local machine for operation without Tailscale. This identifies which commands execute locally; it must not name the remote destination. Configure credentials and host trust separately.
 7. Review `fleet doctor <node>` and `fleet drift <node>` before choosing to deploy with `fleet push <node>`. Push this machine first: it installs `fleet` on your PATH. If you use Tailscale, `fleet ls` additionally shows tailnet status; it is not an SSH reachability check.

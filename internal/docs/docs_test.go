@@ -35,6 +35,7 @@ runtime = "podman"
 		"| b | host-b | linux | member | podman | v |  |",
 		"fleet exec [--timeout 10m] [--detach] <target> -- <command>",
 		"Do not use sudo",
+		"describe private machines",
 		"Tailscale discovery is optional",
 		"this local machine's inventory name",
 		"unknown or absent tailnet",

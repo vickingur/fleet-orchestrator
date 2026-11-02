@@ -32,7 +32,7 @@ Quote the command as one argument. The remote exit code becomes fleet's exit cod
 
 ## Change the shared agent setup
 
-The shared setup lives in the fleet config on the controller (`~/.local/share/fleet/config` unless `FLEET_CONFIG` names another), under `home/`, mapped by `home/manifest.toml`. Never hand-edit a managed file on a node; the next push reports it as a conflict.
+The shared setup lives in the fleet config on the controller (`~/.local/share/fleet/config` unless `FLEET_CONFIG` names another), under `home/`, mapped by `home/manifest.toml`. Never hand-edit a managed file on a node; the next push reports it as a conflict. The config is private: never copy it, or host names, users or addresses from it, into a public repository, issue or pull request, the fleet tool's own included.
 
 1. Edit the config: `home/instructions.md`, the settings overlays, `home/skills/`.
 2. `fleet check` validates it; run any tests the config ships.

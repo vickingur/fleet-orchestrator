@@ -47,7 +47,10 @@ The names in this table are fictional. `doctor` and `drift` can execute commands
 
 ## The tool and your fleet config
 
-This repository is the tool. What it deploys lives in a fleet config: your inventory, generated node guide, `home/` shared layer and optional tailnet policy, kept in its own private Git repository. Fleet looks for it through `FLEET_CONFIG`, the directory it runs in, or `~/.local/share/fleet/config`, where `fleet init` creates one, or clones yours on a further controller. The [installation guide](docs/INSTALLATION.md) walks through it; [`examples/config`](examples/config) is a fictional one.
+This repository is the tool. What it deploys lives in a fleet config: your inventory, generated node guide, `home/` shared layer and optional tailnet policy, kept in its own Git repository.
+
+> **Keep your fleet config private.** It maps your machines: host names, accounts, SSH identity paths, tailnet addresses and access policy, plus the instructions and settings your agents run with. Push it only to a private remote. Never commit it to this repository or a fork of it, and never paste its contents into a public issue or pull request.
+ Fleet looks for it through `FLEET_CONFIG`, the directory it runs in, or `~/.local/share/fleet/config`, where `fleet init` creates one, or clones yours on a further controller. The [installation guide](docs/INSTALLATION.md) walks through it; [`examples/config`](examples/config) is a fictional one.
 
 | This repository | Your fleet config |
 |---|---|

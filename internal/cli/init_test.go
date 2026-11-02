@@ -51,6 +51,12 @@ func TestInitCreatesAValidConfigAtTheDefaultLocation(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, "home/skills/shared/fleet/SKILL.md")); err != nil {
 		t.Error("the starter has no fleet skill")
 	}
+	if readme, _ := os.ReadFile(filepath.Join(dir, "README.md")); !strings.Contains(string(readme), "Keep this repository private") {
+		t.Errorf("the new config does not say it is private: %q", readme)
+	}
+	if !strings.Contains(h.out.String(), "push it only to a private remote") {
+		t.Errorf("init output does not warn to keep the config private: %s", h.out)
+	}
 	if len(*calls) != 1 || strings.Join((*calls)[0], " ") != "init --quiet "+dir {
 		t.Fatalf("git calls = %v", *calls)
 	}
