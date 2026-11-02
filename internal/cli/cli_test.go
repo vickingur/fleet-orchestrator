@@ -89,22 +89,30 @@ type harness struct {
 	out    *bytes.Buffer
 	errb   *bytes.Buffer
 	env    map[string]string
-	src    string
+	src    string // source checkout push builds from
+	cfg    string // fleet config: inventory and shared layer
 	runner *fakeRunner
 }
 
 func newHarness(t *testing.T) *harness {
 	t.Helper()
 	root := t.TempDir()
-	src := filepath.Join(root, "src")
-	if err := os.MkdirAll(src, 0o755); err != nil {
-		t.Fatal(err)
+	src, cfg := filepath.Join(root, "src"), filepath.Join(root, "cfg")
+	for rel, body := range map[string]string{
+		"src/go.mod":             "module github.com/vickingur/fleet-orchestrator\n",
+		"cfg/fleet.toml":         testInventory,
+		"cfg/home/manifest.toml": "",
+	} {
+		p := filepath.Join(root, rel)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
-	if err := os.WriteFile(filepath.Join(src, "fleet.toml"), []byte(testInventory), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	h := &harness{out: &bytes.Buffer{}, errb: &bytes.Buffer{}, src: src,
-		env:    map[string]string{"FLEET_SRC": src, "FLEET_ACTOR": "tester"},
+	h := &harness{out: &bytes.Buffer{}, errb: &bytes.Buffer{}, src: src, cfg: cfg,
+		env:    map[string]string{"FLEET_SRC": src, "FLEET_CONFIG": cfg, "FLEET_ACTOR": "tester"},
 		runner: &fakeRunner{handler: func(execx.Cmd) (string, int, error) { return "", 0, nil }}}
 	h.app = &App{Version: "v-test", Stdin: strings.NewReader(""), Stdout: h.out, Stderr: h.errb, Runner: h.runner,
 		Getenv: func(k string) string { return h.env[k] }, Home: filepath.Join(root, "home"), Cwd: root,
@@ -718,10 +726,10 @@ func TestContainersJSONFailsWhenAHostFails(t *testing.T) {
 func TestAdoptRejectsTraversal(t *testing.T) {
 	h := newHarness(t)
 	h.runner.handler = tailscaleHandler(func(execx.Cmd) (string, int, error) { return "secret", 0, nil })
-	if err := os.MkdirAll(filepath.Join(h.src, "home"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(h.cfg, "home"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(h.src, "home/manifest.toml"), []byte("[[tree]]\nsource = \"skills\"\ntarget = \"~/.claude/skills\"\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(h.cfg, "home/manifest.toml"), []byte("[[tree]]\nsource = \"skills\"\ntarget = \"~/.claude/skills\"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	code := h.run("adopt", "fw", "~/.claude/skills/../../../fleet.toml")
@@ -808,7 +816,7 @@ func TestOrdinarySSHWithExplicitLocalNodeDoesNotUseTailscale(t *testing.T) {
 			h := newHarness(t)
 			h.env["FLEET_SELF"] = "mac"
 			data := strings.ReplaceAll(testInventory, "worker-example", host)
-			if err := os.WriteFile(filepath.Join(h.src, "fleet.toml"), []byte(data), 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(h.cfg, "fleet.toml"), []byte(data), 0o644); err != nil {
 				t.Fatal(err)
 			}
 			h.runner.handler = func(c execx.Cmd) (string, int, error) {

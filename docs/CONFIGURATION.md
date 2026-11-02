@@ -1,6 +1,8 @@
 # Configuration and examples
 
-`fleet.example.toml` is the shareable fixture. The runtime reads `fleet.toml` from the source checkout or installed bundle. Keep real inventory in a separate private deployment checkout.
+Fleet keeps the tool and what it deploys apart. A fleet config is a directory with `fleet.toml` (the inventory), its generated `FLEET.md`, the `home/` shared layer mapped by `home/manifest.toml`, and optionally a tailnet policy in `policy/tailnet.hujson`. Keep yours in its own private Git repository. [`examples/config`](../examples/config) is the fictional example the tests use.
+
+Fleet finds the config through `FLEET_CONFIG`, else the config it runs inside, else `~/.local/share/fleet/config`. A machine with none, such as every node but the controller, reads the inventory of its installed bundle. `push` also needs this source checkout to build fleet for each node: `FLEET_SRC`, else the checkout it runs inside, else the one the installed bundle was pushed from.
 
 ## Inventory
 
@@ -29,7 +31,7 @@ These values are fictional. `name` is Fleet's target alias. `host` can be a reac
 
 There must be exactly one controller. Supported `os` values are `darwin` and `linux`; roles are `controller` and `member`. `runtime` is absent or `podman`. Optional `port` defaults to SSH port 22; optional `identity` names a private, local identity path. Never commit the key itself. Unknown TOML keys and invalid names fail validation. A tool's `version` is a shell command executed by `doctor`, not descriptive text.
 
-After editing inventory in the private deployment checkout, run `fleet docs`. Do not publish the resulting `FLEET.md`.
+After editing the inventory, run `fleet docs` to regenerate `FLEET.md`, then `fleet check`. The guide names your machines; keep it private with the rest of the config.
 
 ## Transport support and limits
 
@@ -64,6 +66,22 @@ File merge strategies are `replace`, `block`, `json` and `toml`. A tree copies r
 
 An optional `[[ensure]]` contains `name`, `check` and `fix` shell commands; `snapshot` lists additional files that a fix changes so they can be backed up. Even a drift preview runs ensure checks. The example layer deliberately has no ensures, plugin installation actions, credentials or command approvals.
 
+## Checking a config
+
+`fleet check [dir]` validates a config before it is pushed and exits 1 with one line per problem (`--json` for machine-readable output):
+
+| Check | Requires |
+|---|---|
+| `inventory`, `manifest` | Both files parse; every manifest source exists under `home/` |
+| `guide` | `FLEET.md` matches what the inventory renders |
+| `layer` | No nested `.git`, `.plans`, `.sessions`, archives or symlinks under `home/` |
+| `pre-approval` | The Claude settings and Codex rules the manifest ships pre-approve only `fleet ls`, `containers` and `version`; `doctor` and `drift` run config-defined commands |
+| `plugins` | Every plugin enabled in the shipped Claude settings has an ensure that installs it, after one that adds its marketplace |
+| `terminfo` | Every shipped `*.terminfo` compiles with `tic -x` |
+| `policy` | If present, agents reach only agents, root SSH needs `check`, a policy test denies `tag:agent`, and `tag:agent` has an owner |
+
+Run tests your shared layer ships, such as a vendored hook's, from the config's own repository.
+
 ## Typical private operations
 
 ```sh
@@ -73,13 +91,14 @@ fleet drift worker
 fleet exec worker -- 'uname -sm'
 ```
 
-After reviewing the proposed changes, `fleet push worker` deploys to that target. `fleet restore` lists backup sets; restoring a selected set is a separate write operation. `fleet adopt <node> <path>` copies a locally edited managed file into the controller source for review.
+After reviewing the proposed changes, `fleet push worker` deploys to that target. `fleet restore` lists backup sets; restoring a selected set is a separate write operation. `fleet adopt <node> <path>` copies a locally edited managed file into the fleet config for review.
 
 Exit codes are 0 for success, 1 for an error, 2 for usage errors, 3 for unresolved conflicts, and 4 for detected drift. `ls`, `doctor`, `drift`, `containers` and `exec` support JSON output.
 
 ## Runtime controls
 
-- `FLEET_SRC`: source checkout for inventory and the managed layer.
+- `FLEET_CONFIG`: the fleet config: inventory, guide and shared layer.
+- `FLEET_SRC`: the source checkout `push` builds fleet from.
 - `FLEET_SELF`: this machine's configured node name, required for operational CLI commands without Tailscale self-discovery. Commands aimed at that name execute locally; it is not a remote target selector.
 - `FLEET_TAILSCALE_SOCKET`: selects the Tailscale daemon socket.
 - `FLEET_SSH_PROXY`: trusted SSH proxy command, used by userspace-network containers.

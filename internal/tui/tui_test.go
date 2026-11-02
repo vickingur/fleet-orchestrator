@@ -409,10 +409,12 @@ os = "linux"
 role = "member"
 runtime = "podman"
 `
-	if err := os.WriteFile(filepath.Join(src, "fleet.toml"), []byte(inv), 0o644); err != nil {
+	writeConfig(t, src, inv)
+	checkout := t.TempDir()
+	if err := os.WriteFile(filepath.Join(checkout, "go.mod"), []byte("module github.com/vickingur/fleet-orchestrator\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	env := map[string]string{"FLEET_SRC": src, "FLEET_SELF": "mac"}
+	env := map[string]string{"FLEET_CONFIG": src, "FLEET_SRC": checkout, "FLEET_SELF": "mac"}
 	app := &cli.App{Version: "t", Getenv: func(k string) string { return env[k] }, Home: t.TempDir(), Cwd: src, Now: time.Now,
 		Runner: scripted{func(c execx.Cmd) (string, int) {
 			switch c.Name {
@@ -434,7 +436,7 @@ runtime = "podman"
 		t.Fatalf("containers = %+v, %v", cs, err)
 	}
 	if !b.IsController() {
-		t.Fatal("source checkout not detected")
+		t.Fatal("controller not detected from its config and source checkout")
 	}
 	if _, err := (CLI{App: &cli.App{Getenv: func(string) string { return "" }, Home: t.TempDir(), Cwd: t.TempDir(), Now: time.Now,
 		Runner: scripted{func(execx.Cmd) (string, int) { return "", 1 }}}}).Fleet(context.Background()); err == nil {
@@ -517,7 +519,7 @@ func TestDelegateLaunchesTheChosenAgentWithEvidence(t *testing.T) {
 	if agent != "claude" {
 		t.Fatalf("agent = %s", agent)
 	}
-	for _, want := range []string{"Fix fleet problems on fw.", "Use the fleet skill", "fleet repo on the controller",
+	for _, want := range []string{"Fix fleet problems on fw.", "Use the fleet skill", "fleet config on the controller",
 		"Ask me before anything destructive", "fleet doctor and fleet drift", "- node fw: linux, member, online, 192.0.2.11, containers via podman",
 		"- conflict on ~/.claude/x (edited locally)", "I also want: also bump codex"} {
 		if !strings.Contains(prompt, want) {
@@ -568,13 +570,25 @@ func TestDelegateGuards(t *testing.T) {
 	}
 }
 
-func TestCLIDelegateAndPreferences(t *testing.T) {
-	src := t.TempDir()
-	if err := os.WriteFile(filepath.Join(src, "fleet.toml"), []byte("x"), 0o644); err != nil {
+// writeConfig makes dir a fleet config holding inv and an empty shared layer.
+func writeConfig(t *testing.T, dir, inv string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(dir, "home"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	for rel, body := range map[string]string{"fleet.toml": inv, "home/manifest.toml": ""} {
+		if err := os.WriteFile(filepath.Join(dir, rel), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// Delegated fixes run in the config, where the files they change live.
+func TestCLIDelegateAndPreferences(t *testing.T) {
+	src := t.TempDir()
+	writeConfig(t, src, "x")
 	home := t.TempDir()
-	env := map[string]string{"FLEET_SRC": src}
+	env := map[string]string{"FLEET_CONFIG": src}
 	b := CLI{App: &cli.App{Getenv: func(k string) string { return env[k] }, Home: home, Cwd: home, Now: time.Now}}
 	if _, err := b.Delegate("gemini", "x"); err == nil {
 		t.Fatal("unknown agent accepted")

@@ -85,9 +85,9 @@ func (m Model) delegatePrompt(target, note string, problems []string, controller
 	fmt.Fprintf(&b, "Fix fleet problems on %s.\n\n", target)
 	b.WriteString("Use the fleet skill: reach other machines only through the fleet CLI and read ~/.config/fleet/FLEET.md for the nodes. ")
 	if controller {
-		b.WriteString("You are in the fleet repo on the controller: shared config changes go into home/ here, then make check and fleet push; never hand-edit managed files on a node. ")
+		b.WriteString("You are in the fleet config on the controller: shared config changes go into home/ here, then fleet check and fleet push; never hand-edit managed files on a node. ")
 	} else {
-		b.WriteString("This machine is not the controller: shared config changes must be made in the fleet repo on the MacBook. ")
+		b.WriteString("This machine is not the controller: shared config changes must be made in the fleet config on the controller. ")
 	}
 	b.WriteString("Ask me before anything destructive or irreversible. When done, verify with fleet doctor and fleet drift, then tell me what you changed.\n\n")
 	b.WriteString("What the fleet TUI sees now:\n")

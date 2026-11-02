@@ -56,8 +56,10 @@ func parseDoctor(out string, row *doctorRow) {
 }
 
 func (a *App) expectedVersion() string {
-	if src, err := a.sourceDir(); err == nil {
-		if v, err := bundle.Version(src); err == nil {
+	src, srcErr := a.sourceDir()
+	cfg, cfgErr := a.configDir()
+	if srcErr == nil && cfgErr == nil {
+		if v, err := bundle.Version(src, cfg); err == nil {
 			return v
 		}
 	}

@@ -486,7 +486,7 @@ func (m Model) footer() string {
 		case confirmTakeShared:
 			q = fmt.Sprintf("Overwrite %d edited file(s) on %s with the shared version? They are backed up there.", n, node)
 		case confirmKeepNode:
-			q = fmt.Sprintf("Copy %s's version of %d file(s) into the fleet repo?", node, n)
+			q = fmt.Sprintf("Copy %s's version of %d file(s) into the fleet config?", node, n)
 		}
 		return m.st.warn.Render(q) + "   " + m.key("y", "yes") + "  " + m.key("n", "no")
 	case modeOutput:
