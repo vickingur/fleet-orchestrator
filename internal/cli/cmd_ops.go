@@ -109,7 +109,7 @@ func (a *App) cmdLs(ctx context.Context, args []string) error {
 		return writeJSON(a.out, out)
 	}
 	tw := tabwriter.NewWriter(a.out, 0, 4, 2, ' ', 0)
-	row(tw, "NODE", "TAILNET HOST", "OS", "ROLE", "STATE", "ADDRESS")
+	row(tw, "NODE", "SSH HOST", "OS", "ROLE", "STATE", "ADDRESS")
 	for _, r := range out.Nodes {
 		row(tw, r.Name, r.Host, r.OS, r.Role, r.State, dash(r.Address))
 	}

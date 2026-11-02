@@ -35,6 +35,9 @@ runtime = "podman"
 		"| b | host-b | linux | member | podman | v |  |",
 		"fleet exec [--timeout 10m] [--detach] <target> -- <command>",
 		"Do not use sudo",
+		"Tailscale discovery is optional",
+		"this local machine's inventory name",
+		"unknown or absent tailnet",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q", want)

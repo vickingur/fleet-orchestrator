@@ -1,5 +1,5 @@
-// Command fleet operates a personal fleet of machines and agent containers
-// over Tailscale. See FLEET.md.
+// Command fleet operates machines and agent containers over SSH, with optional
+// Tailscale discovery. See FLEET.md.
 package main
 
 import (

@@ -1,0 +1,20 @@
+# Fictional ordinary-SSH example, exercised by the Docker integration test.
+[[node]]
+name = "controller"
+host = "controller.example.invalid"
+user = "operator"
+os = "linux"
+role = "controller"
+
+[[node]]
+name = "worker"
+host = "worker.example.invalid"
+port = 2222
+user = "agent"
+os = "linux"
+role = "member"
+identity = "/path/to/private/test-key"
+
+[[tool]]
+name = "fish"
+version = "fish --version"

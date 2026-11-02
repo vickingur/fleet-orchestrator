@@ -799,3 +799,31 @@ func TestExecDetachRefusesFanOut(t *testing.T) {
 		t.Fatalf("--detach on several targets: %d", code)
 	}
 }
+
+// The explicit local identity must bypass discovery and preserve ordinary SSH
+// destinations, including DNS names that are not MagicDNS short names.
+func TestOrdinarySSHWithExplicitLocalNodeDoesNotUseTailscale(t *testing.T) {
+	for _, host := range []string{"worker.example.invalid", "192.0.2.10"} {
+		t.Run(host, func(t *testing.T) {
+			h := newHarness(t)
+			h.env["FLEET_SELF"] = "mac"
+			data := strings.ReplaceAll(testInventory, "worker-example", host)
+			if err := os.WriteFile(filepath.Join(h.src, "fleet.toml"), []byte(data), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			h.runner.handler = func(c execx.Cmd) (string, int, error) {
+				if c.Name != "ssh" {
+					return "", 1, fmt.Errorf("unexpected command %s; no discovery is available", c.Name)
+				}
+				return "ordinary ssh\n", 0, nil
+			}
+			if code := h.run("exec", "fw", "--", "uname -sm"); code != 0 || h.out.String() != "ordinary ssh\n" {
+				t.Fatalf("exit %d: %s %s", code, h.out, h.errb)
+			}
+			calls := h.runner.sshCalls()
+			if len(calls) != 1 || !strings.Contains(strings.Join(calls[0].Args, " "), " -- "+host+" ") {
+				t.Fatalf("expected one SSH call to %s, got %v", host, calls)
+			}
+		})
+	}
+}

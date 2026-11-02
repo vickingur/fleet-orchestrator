@@ -215,13 +215,14 @@ func (a *App) GuidePath() string {
 
 func (a *App) usage() string {
 	var b strings.Builder
-	b.WriteString("fleet: operate a personal fleet of machines and agent containers over Tailscale\n")
+	b.WriteString("fleet: operate machines and agent containers over SSH; optional Tailscale discovery\n")
 	b.WriteString("\nUsage: fleet <command> [flags] [args]\n\nCommands:\n")
 	for _, c := range commands() {
 		fmt.Fprintf(&b, "  %-11s %s\n", c.name, c.summary)
 	}
 	b.WriteString("\nRun fleet with no arguments in a terminal for the interactive view.\n")
 	b.WriteString("Targets: a node name, node:agent for an agent container, a comma list, or all.\n")
+	b.WriteString("Without Tailscale: set FLEET_SELF to this local machine's inventory name.\n")
 	b.WriteString("Agent guide: ~/.config/fleet/FLEET.md\n")
 	return b.String()
 }

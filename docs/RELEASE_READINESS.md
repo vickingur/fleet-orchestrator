@@ -8,6 +8,7 @@ This repository remains private. This checklist records the preparation boundary
 - [x] Fictional inventory, examples and policy fixtures replace personal values.
 - [x] Original private Git history excluded; new history starts from the sanitized tree.
 - [x] README, local build, deployment configuration, contribution and security guidance provided.
+- [x] Ordinary SSH setup documented separately from Tailscale discovery/UI/container integration, with a shared example used by the integration test.
 - [x] Git index privacy checks reject tracked deployment files and scan staged blobs rather than trusting working-tree contents.
 - [x] Local race tests, formatting, vet, lint and generated-doc checks are defined in `make check`.
 - [x] CI is configured for Linux, macOS and Docker SSH integration with read-only repository access and pinned action revisions.

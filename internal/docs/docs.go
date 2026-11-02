@@ -22,13 +22,13 @@ var tmpl = template.Must(template.New("fleet").Funcs(template.FuncMap{
 
 Generated from fleet.toml by ` + "`fleet docs`" + `. Do not edit by hand.
 
-This is a personal fleet of machines on one Tailscale network. Every node runs
-the same agent setup (Claude Code and Codex: instructions, settings, skills).
+Fleet manages machines over SSH and can synchronize agent instructions, settings
+and skills. Tailscale discovery is optional for core CLI operations.
 Use the ` + "`fleet`" + ` command for anything that touches another machine.
 
 ## Nodes
 
-| Node | Tailnet host | OS | Role | Containers | SSH user | Notes |
+| Node | SSH host | OS | Role | Containers | SSH user | Notes |
 |---|---|---|---|---|---|---|
 {{- range .Nodes}}
 | {{.Name}} | {{.Host}} | {{.OS}} | {{.Role}} | {{or_dash .Runtime}} | {{.User}} | {{cell .Notes}} |
@@ -36,13 +36,23 @@ Use the ` + "`fleet`" + ` command for anything that touches another machine.
 
 Agent containers are addressed as ` + "`node:agent`" + `, for example ` + "`worker:builder`" + `.
 
+## Transport
+
+For ordinary DNS/IPv4 SSH access, set ` + "`FLEET_SELF`" + ` to this local machine's inventory name.
+A target with that name executes locally; never set it to a remote destination.
+Without this override, operational commands use Tailscale to identify this machine.
+` + "`fleet ls`" + ` and terminal UI status remain tailnet-based; unknown or absent tailnet
+status does not prove an SSH host is unreachable. Use the CLI for generic SSH hosts.
+Containers may skip enrollment with ` + "`--tailnet=false`" + `, but the bundled image's
+outgoing SSH proxy still uses Tailscale.
+
 ## Commands
 
 | Command | What it does | Changes anything |
 |---|---|---|
 | ` + "`fleet ls`" + ` | Nodes joined with live tailnet status, plus agent containers on the tailnet | no |
-| ` + "`fleet doctor [target]`" + ` | Reachability, agent tool versions, installed fleet version | no |
-| ` + "`fleet drift [target]`" + ` | What a push would change on each node, without changing it | no |
+| ` + "`fleet doctor [target]`" + ` | Reachability, agent tool versions, installed fleet version | runs configured commands |
+| ` + "`fleet drift [target]`" + ` | Preview file changes and run manifest ensure checks | runs configured checks |
 | ` + "`fleet containers [node]`" + ` | Agent containers on a host | no |
 | ` + "`fleet exec [--timeout 10m] [--detach] <target> -- <command>`" + ` | Run a shell command; ` + "`all`" + ` runs it everywhere in parallel. Stops it after ` + "`--timeout`" + ` (10m by default); ` + "`--detach`" + ` starts it in the background and prints its log path | yes |
 | ` + "`fleet ssh <target> [command]`" + ` | Interactive session. A node's shell is its tmux session ` + "`fleet`" + `, which keeps running when the connection drops; the next ` + "`fleet ssh`" + ` resumes it | yes |
@@ -59,17 +69,20 @@ Add ` + "`--json`" + ` to ls, doctor, drift, containers and exec for machine-rea
 
 ## Rules for agents
 
-1. Reach other machines only through ` + "`fleet`" + `. It pins host keys, refuses agent and
-   port forwarding, enforces timeouts, runs commands under a POSIX shell whatever the
-   login shell is, and records every action in ` + "`~/.local/state/fleet/audit.jsonl`" + `.
-2. Do not use sudo on other machines. Nodes have no passwordless sudo; anything that
-   needs root is for the owner to do.
+1. Reach other machines through ` + "`fleet`" + `. It records first-use SSH host keys, rejects
+   changed keys, disables agent forwarding, enforces timeouts, and records actions in
+   ` + "`~/.local/state/fleet/audit.jsonl`" + `. Ordinary commands clear port forwards; Codex
+   attachment intentionally creates a token-authenticated local tunnel.
+2. Do not use sudo on other machines without the owner's authorization. Do not assume
+   passwordless sudo or administrative privileges.
 3. Shared agent config is owned by the fleet repo on the controller. Never hand-edit
    a managed file on a node: the next push reports it as a conflict. Change the repo
    and run ` + "`fleet push all`" + ` instead.
 4. Prefer an agent container for risky or long experiments. It has no access to the
    host's files, runs without capabilities, and can be thrown away with ` + "`fleet rm`" + `.
-5. Check ` + "`fleet ls`" + ` before acting. An offline node is not an error to retry in a loop.
+5. For tailnet status use ` + "`fleet ls`" + `; for SSH reachability use ` + "`fleet doctor <node>`" + `.
+   Doctor executes configured version commands, so review them first. Do not retry
+   unreachable nodes in a loop.
 6. A job longer than a few minutes runs with ` + "`fleet exec --detach`" + `, then short ` + "`fleet exec`" + ` calls
    check on it; a foreground command is stopped after ` + "`--timeout`" + `. Files move through stdin
    and stdout: ` + "`fleet exec mac -- 'cat > ~/f' < f`" + ` and ` + "`fleet exec mac -- 'cat ~/f' > f`" + ` are byte-exact.

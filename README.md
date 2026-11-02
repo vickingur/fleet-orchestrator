@@ -1,12 +1,12 @@
 # Fleet Orchestrator
 
-A Go CLI and terminal UI for operating machines over Tailscale, synchronizing agent configuration, and managing agent containers. Fleet provides SSH commands, configuration drift checks, conflict-aware updates, backups and restoration, and JSON output for automation.
+A Go CLI for managing machines over SSH, synchronizing agent configuration, and managing agent containers, with a terminal UI and optional Tailscale discovery. Fleet provides command execution, configuration drift checks, conflict-aware updates, backups and restoration, and JSON output for automation.
 
 This repository is being prepared for public release. It contains reusable source and fictional examples. No project license has been selected yet; see [provenance and licensing](docs/PROVENANCE.md).
 
 ## Build and check
 
-Prerequisites: Git, Make, Python 3.9+, the Go version in `go.mod`, and `golangci-lint` v2.10.1 for the full check. Runtime operation additionally requires Tailscale and OpenSSH. Podman is needed only on nodes that host agent containers; tmux supports persistent interactive sessions.
+Prerequisites: Git, Make, Python 3.9+, the Go version in `go.mod`, and `golangci-lint` v2.10.1 for the full check. Remote operations use OpenSSH; Tailscale is optional for the core CLI when the local node is identified explicitly with `FLEET_SELF`. Podman is needed only on nodes that host agent containers; tmux supports persistent interactive sessions.
 
 ```sh
 git clone https://github.com/vickingur/fleet-orchestrator.git
@@ -20,6 +20,14 @@ make check
 Repository access requires authorization while it is private. `make example` creates an ignored `fleet.toml` from the fictional inventory and generates the ignored node guide, `FLEET.md`. It refuses to replace an inventory that has been customized. These steps build and test locally; they do not install Fleet or contact configured nodes.
 
 The test gate runs formatting, vet, lint, race-enabled Go tests, privacy-checker regression tests, and a scan of staged Git blobs. CI checks Linux and macOS and runs a separate Docker SSH integration test. Run `make e2e` locally with Docker available; the test creates an isolated controller home, temporary keys, and a throwaway SSH container. It skips without Docker locally; CI explicitly requires Docker first.
+
+## Ordinary SSH and optional Tailscale
+
+Core CLI operations work with reachable DNS names or IPv4 addresses over a LAN, another VPN, or an SSH-accessible network. Set `FLEET_SELF` to the inventory name of the machine running Fleet; a target with that name executes locally. Do not set it to the remote target. Without this setting, Fleet uses Tailscale to identify the local node.
+
+See the [tested ordinary SSH example](examples/ssh/README.md). CI runs its configuration against a disposable SSH server with Tailscale deliberately unavailable, exercising execution, drift, push, doctor and adoption.
+
+Tailscale is still used for discovery/status: `fleet ls` reports unknown status when it is unavailable, and the terminal UI can disable actions for hosts absent from an active tailnet. Use the CLI for ordinary SSH hosts. The bundled agent image also contains Tailscale-specific networking; see the [transport support table](docs/CONFIGURATION.md#transport-support-and-limits) before using it without a tailnet.
 
 ## What it does
 
