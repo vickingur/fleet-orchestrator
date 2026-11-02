@@ -1,6 +1,6 @@
 # Configuration and examples
 
-Fleet keeps the tool and what it deploys apart. A fleet config is a directory with `fleet.toml` (the inventory), its generated `FLEET.md`, the `home/` shared layer mapped by `home/manifest.toml`, and optionally a tailnet policy in `policy/tailnet.hujson`. Keep yours in its own private Git repository. [`examples/config`](../examples/config) is the fictional example the tests use.
+Fleet keeps the tool and what it deploys apart. A fleet config is a directory with `fleet.toml` (the inventory), its generated `FLEET.md`, the `home/` shared layer mapped by `home/manifest.toml`, and optionally a tailnet policy in `policy/tailnet.hujson`. Keep yours in its own Git repository with a private remote, never in this repository or a fork: it maps your machines, accounts and network. [`examples/config`](../examples/config) is the fictional example the tests use.
 
 Fleet finds the config through `FLEET_CONFIG`, else the config it runs inside, else `~/.local/share/fleet/config`. A machine with none, such as every node but the controller, reads the inventory of its installed bundle. `push` also needs this source checkout to build fleet for each node: `FLEET_SRC`, else the checkout it runs inside, else the one the installed bundle was pushed from.
 
@@ -103,4 +103,4 @@ Exit codes are 0 for success, 1 for an error, 2 for usage errors, 3 for unresolv
 - `FLEET_TAILSCALE_SOCKET`: selects the Tailscale daemon socket.
 - `FLEET_SSH_PROXY`: trusted SSH proxy command, used by userspace-network containers.
 
-These values can affect which machines or commands Fleet operates on. Keep deployment values out of source, CI and issue reports. SSH host keys, state, backups and audits are private runtime data.
+These values can affect which machines or commands Fleet operates on. Keep fleet config values out of this source, CI and issue reports. SSH host keys, state, backups and audits are private runtime data.

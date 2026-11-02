@@ -10,3 +10,9 @@ import "embed"
 //
 //go:embed home
 var Home embed.FS
+
+// Readme is written as README.md at the root of a new config. It tells
+// whoever opens the repository to keep it private.
+//
+//go:embed config-readme.md
+var Readme []byte
