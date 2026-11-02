@@ -1,8 +1,8 @@
 # Ordinary SSH example
 
-This configuration demonstrates a controller and an SSH worker without Tailscale. The `.invalid` hosts and identity path are placeholders; they are not working endpoints. Use a separate private deployment checkout, copy this example to its `fleet.toml`, and replace the host, port, user, OS and identity fields for your machines. The example checks for `fish`; replace the tool section with commands appropriate to your worker.
+This configuration demonstrates a controller and an SSH worker without Tailscale. The `.invalid` hosts and identity path are placeholders; they are not working endpoints. Copy this example over your fleet config's `fleet.toml` and replace the host, port, user, OS and identity fields for your machines. The example checks for `fish`; replace the tool section with commands appropriate to your worker.
 
-From that private checkout, after `make build`:
+From this checkout after `make build`, with your config at the default location or named by `FLEET_CONFIG`:
 
 ```sh
 export FLEET_SELF=controller

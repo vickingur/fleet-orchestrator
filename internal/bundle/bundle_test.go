@@ -39,53 +39,84 @@ func repoRoot(t *testing.T) string {
 	return root
 }
 
+// exampleConfig is the fictional config the repository ships for tests.
+func exampleConfig(t *testing.T) string {
+	t.Helper()
+	return filepath.Join(repoRoot(t), "examples", "config")
+}
+
 func TestFindSource(t *testing.T) {
 	root := repoRoot(t)
-	if _, err := os.Stat(filepath.Join(root, "fleet.toml")); err != nil {
-		t.Fatalf("found %s without fleet.toml", root)
+	if _, err := os.Stat(filepath.Join(root, "go.mod")); err != nil {
+		t.Fatalf("found %s without go.mod", root)
 	}
 	if _, err := FindSource(t.TempDir()); err == nil || !strings.Contains(err.Error(), "FLEET_SRC") {
 		t.Fatalf("err = %v", err)
 	}
 }
 
+// A config is found from anywhere inside it, needs both its inventory and its
+// manifest, and the source checkout is not one.
+func TestFindConfig(t *testing.T) {
+	cfg := exampleConfig(t)
+	if got, err := FindConfig(filepath.Join(cfg, "home", "skills")); err != nil || got != cfg {
+		t.Fatalf("FindConfig = %q, %v", got, err)
+	}
+	if _, err := FindConfig(repoRoot(t)); err == nil {
+		t.Fatal("the source checkout was taken for a config")
+	}
+	half := t.TempDir()
+	if err := os.WriteFile(filepath.Join(half, "fleet.toml"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if IsConfig(half) {
+		t.Fatal("fleet.toml without home/manifest.toml was taken for a config")
+	}
+}
+
 func TestVersionTracksContent(t *testing.T) {
-	src := t.TempDir()
+	root := t.TempDir()
+	src, cfg := filepath.Join(root, "src"), filepath.Join(root, "cfg")
 	write := func(rel, content string) {
 		t.Helper()
-		if err := os.MkdirAll(filepath.Join(src, filepath.Dir(rel)), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Join(root, filepath.Dir(rel)), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(src, rel), []byte(content), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(root, rel), []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
-	for _, f := range []string{"fleet.toml", "go.mod", "go.sum", "home/a.md", "container/x", "cmd/fleet/main.go", "internal/p/p.go"} {
+	for _, f := range []string{"cfg/fleet.toml", "cfg/home/a.md", "src/go.mod", "src/go.sum", "src/container/x", "src/cmd/fleet/main.go", "src/internal/p/p.go"} {
 		write(f, f)
 	}
-	v1, err := Version(src)
+	v1, err := Version(src, cfg)
 	if err != nil || len(v1) != 12 {
 		t.Fatalf("v1 = %q, %v", v1, err)
 	}
-	if v, _ := Version(src); v != v1 {
+	if v, _ := Version(src, cfg); v != v1 {
 		t.Fatal("version not deterministic")
 	}
-	write("home/a.md", "changed")
-	if v, _ := Version(src); v == v1 {
-		t.Fatal("content change did not change version")
+	for _, f := range []string{"cfg/home/a.md", "cfg/fleet.toml", "src/container/x", "src/internal/p/p.go"} {
+		before, _ := Version(src, cfg)
+		write(f, "changed")
+		if v, _ := Version(src, cfg); v == before {
+			t.Fatalf("changing %s did not change the version", f)
+		}
 	}
-	write("internal/p/p_test.go", "test v1")
-	v3, _ := Version(src)
-	write("internal/p/p_test.go", "test v2")
-	if v, _ := Version(src); v != v3 {
+	write("src/internal/p/p_test.go", "test v1")
+	v3, _ := Version(src, cfg)
+	write("src/internal/p/p_test.go", "test v2")
+	if v, _ := Version(src, cfg); v != v3 {
 		t.Fatal("a test-only change altered the shipped version")
 	}
-	v2, _ := Version(src)
-	write("home/.DS_Store", "junk")
-	write("home/skill/__pycache__/m.cpython-313.pyc", "bytecode")
-	write("internal/p/node_modules/x/index.js", "dep")
-	if v, _ := Version(src); v != v2 {
-		t.Fatal("caches or OS litter changed the shipped version")
+	v2, _ := Version(src, cfg)
+	write("cfg/home/.DS_Store", "junk")
+	write("cfg/home/skill/__pycache__/m.cpython-313.pyc", "bytecode")
+	write("src/internal/p/node_modules/x/index.js", "dep")
+	write("src/home/stray.md", "a source checkout's home/ is not shipped")
+	write("cfg/internal/stray.go", "a config's code is not shipped")
+	if v, _ := Version(src, cfg); v != v2 {
+		t.Fatal("files outside the shipped parts changed the version")
 	}
 }
 
@@ -93,8 +124,8 @@ func TestBuildAndPackRealSource(t *testing.T) {
 	if testing.Short() {
 		t.Skip("compiles fleet")
 	}
-	root := repoRoot(t)
-	version, err := Version(root)
+	root, cfg := repoRoot(t), exampleConfig(t)
+	version, err := Version(root, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +133,7 @@ func TestBuildAndPackRealSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := Pack(root, bin, version)
+	data, err := Pack(root, cfg, bin, version)
 	if err != nil {
 		t.Fatal(err)
 	}

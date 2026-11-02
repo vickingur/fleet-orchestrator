@@ -1,17 +1,11 @@
-.PHONY: example check verify fmt vet lint test e2e build docs-check privacy hooks
-
-# This target never replaces a customized deployment inventory.
-example:
-	@test -f fleet.toml || cp fleet.example.toml fleet.toml
-	@cmp -s fleet.example.toml fleet.toml || { echo "fleet.toml is customized; use a separate checkout for checks"; exit 1; }
-	go run ./cmd/fleet docs
+.PHONY: check verify fmt vet lint test e2e build privacy hooks
 
 check: lint verify
 
-verify: fmt vet test docs-check privacy
+verify: fmt vet test privacy
 
 fmt:
-	@test -z "$$(gofmt -l cmd internal policy test)" || { gofmt -l cmd internal policy test; exit 1; }
+	@test -z "$$(gofmt -l cmd internal test)" || { gofmt -l cmd internal test; exit 1; }
 
 vet:
 	go vet ./...
@@ -23,9 +17,6 @@ lint:
 test:
 	go test -race -cover -timeout 5m ./...
 	python3 -B -m unittest discover -s scripts -p 'test_*.py'
-
-docs-check:
-	go run ./cmd/fleet docs --check
 
 privacy:
 	python3 scripts/check-shareable.py --tracked

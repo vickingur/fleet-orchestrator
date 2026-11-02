@@ -18,6 +18,15 @@ var tmpl = template.Must(template.New("fleet").Funcs(template.FuncMap{
 		return s
 	},
 	"cell": func(s string) string { return strings.ReplaceAll(s, "|", `\|`) },
+	// containerHost names the first node that hosts agent containers, if any.
+	"containerHost": func(nodes []inventory.Node) string {
+		for _, n := range nodes {
+			if n.Runtime != "" {
+				return n.Name
+			}
+		}
+		return ""
+	},
 }).Parse(`# Fleet
 
 Generated from fleet.toml by ` + "`fleet docs`" + `. Do not edit by hand.
@@ -33,8 +42,10 @@ Use the ` + "`fleet`" + ` command for anything that touches another machine.
 {{- range .Nodes}}
 | {{.Name}} | {{.Host}} | {{.OS}} | {{.Role}} | {{or_dash .Runtime}} | {{.User}} | {{cell .Notes}} |
 {{- end}}
+{{- with containerHost .Nodes}}
 
-Agent containers are addressed as ` + "`node:agent`" + `, for example ` + "`worker:builder`" + `.
+Agent containers are addressed as ` + "`node:agent`" + `, for example ` + "`{{.}}:builder`" + `.
+{{- end}}
 
 ## Transport
 
@@ -58,7 +69,8 @@ outgoing SSH proxy still uses Tailscale.
 | ` + "`fleet ssh <target> [command]`" + ` | Interactive session. A node's shell is its tmux session ` + "`fleet`" + `, which keeps running when the connection drops; the next ` + "`fleet ssh`" + ` resumes it | yes |
 | ` + "`fleet push <target>`" + ` | Install the shared layer and fleet itself on a node (controller only) | yes |
 | ` + "`fleet apply`" + ` | Apply the installed shared layer to this machine | yes |
-| ` + "`fleet adopt <node> <path>`" + ` | Copy a locally edited shared file back into the repo (controller only) | repo only |
+| ` + "`fleet adopt <node> <path>`" + ` | Copy a locally edited shared file back into the fleet config (controller only) | config only |
+| ` + "`fleet check [dir]`" + ` | Validate a fleet config before pushing it | no |
 | ` + "`fleet restore [<set> [~/path ...]]`" + ` | List this machine's backup sets, or copy one back into place; the files it replaces are saved into a new set first | yes |
 | ` + "`fleet image <node>`" + ` | Build the agent container image on a host | yes |
 | ` + "`fleet spawn <node> <agent>`" + ` | Start an agent container | yes |
@@ -75,9 +87,9 @@ Add ` + "`--json`" + ` to ls, doctor, drift, containers and exec for machine-rea
    attachment intentionally creates a token-authenticated local tunnel.
 2. Do not use sudo on other machines without the owner's authorization. Do not assume
    passwordless sudo or administrative privileges.
-3. Shared agent config is owned by the fleet repo on the controller. Never hand-edit
-   a managed file on a node: the next push reports it as a conflict. Change the repo
-   and run ` + "`fleet push all`" + ` instead.
+3. Shared agent config is owned by the fleet config on the controller. Never hand-edit
+   a managed file on a node: the next push reports it as a conflict. Change the config,
+   run ` + "`fleet check`" + `, then ` + "`fleet push all`" + `.
 4. Prefer an agent container for risky or long experiments. It has no access to the
    host's files, runs without capabilities, and can be thrown away with ` + "`fleet rm`" + `.
 5. For tailnet status use ` + "`fleet ls`" + `; for SSH reachability use ` + "`fleet doctor <node>`" + `.
@@ -92,6 +104,7 @@ Add ` + "`--json`" + ` to ls, doctor, drift, containers and exec for machine-rea
 | Path | Contents |
 |---|---|
 | ` + "`~/.local/share/fleet/bundle`" + ` | Installed shared layer and the fleet binary |
+| ` + "`~/.local/share/fleet/config`" + ` | The fleet config, on the controller only, unless ` + "`FLEET_CONFIG`" + ` names another |
 | ` + "`~/.local/bin/fleet`" + ` | The fleet command |
 | ` + "`~/.local/state/fleet/state.json`" + ` | What fleet last wrote, used to detect local edits |
 | ` + "`~/.local/state/fleet/backup/`" + ` | A copy of every file before fleet changed it |

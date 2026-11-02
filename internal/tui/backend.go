@@ -112,7 +112,7 @@ type Backend interface {
 	// Push installs the shared layer; force takes the shared version over
 	// files edited on the node (they are backed up there first).
 	Push(ctx context.Context, node string, force bool) (Sync, error)
-	// Adopt copies the node's version of managed files into the fleet repo.
+	// Adopt copies the node's version of managed files into the fleet config.
 	Adopt(ctx context.Context, node string, paths []string) (string, error)
 	Exec(ctx context.Context, target, command string) (RunResult, error)
 	Spawn(ctx context.Context, node, agent string, tailnet bool) (string, error)
@@ -123,7 +123,7 @@ type Backend interface {
 	// Shell returns the command that opens an interactive session on target.
 	Shell(target string) (*exec.Cmd, error)
 	// Delegate returns an interactive agent session ("claude" or "codex")
-	// that opens with prompt, in the fleet repo when this is the controller.
+	// that opens with prompt, in the fleet config when this machine has one.
 	Delegate(agent, prompt string) (*exec.Cmd, error)
 	// Preference reads and SetPreference stores a small per-machine TUI
 	// setting, such as the agent last delegated to.
@@ -280,7 +280,7 @@ func (c CLI) Guide() (string, error) {
 func (c CLI) IsController() bool { return c.App.IsController() }
 
 // Delegate opens claude or codex interactively with prompt as the first
-// message. The agent runs in the fleet repo on the controller, so it can change
+// message. The agent runs in the fleet config on the controller, so it can change
 // the shared layer, and from the home directory elsewhere.
 func (c CLI) Delegate(agent, prompt string) (*exec.Cmd, error) {
 	if _, ok := agentNames[agent]; !ok {
@@ -291,8 +291,8 @@ func (c CLI) Delegate(agent, prompt string) (*exec.Cmd, error) {
 		return nil, fmt.Errorf("%s is not installed on this machine", agent)
 	}
 	cmd := exec.Command(bin, prompt)
-	if src, ok := c.App.SourceDir(); ok {
-		cmd.Dir = src
+	if cfg, ok := c.App.ConfigDir(); ok {
+		cmd.Dir = cfg
 	} else {
 		cmd.Dir = c.App.Home
 	}
