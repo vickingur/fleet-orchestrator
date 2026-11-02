@@ -106,7 +106,8 @@ func commands() []command {
 		{"containers", "list agent containers on a node or all nodes", (*App).cmdContainers},
 		{"rm", "remove an agent container: fleet rm <node> <agent>", (*App).cmdRm},
 		{"codex", "attach this machine's Codex TUI to Codex on a node", (*App).cmdCodex},
-		{"docs", "regenerate FLEET.md from fleet.toml (controller)", (*App).cmdDocs},
+		{"docs", "regenerate FLEET.md in the fleet config from its fleet.toml", (*App).cmdDocs},
+		{"init", "create a fleet config, or clone one: fleet init [<git-url>]", (*App).cmdInit},
 		{"check", "validate a fleet config before pushing it: fleet check [dir]", (*App).cmdCheck},
 		{"version", "print the fleet version", (*App).cmdVersion},
 	}

@@ -1,0 +1,14 @@
+{
+  "env": {
+    "FLEET_ACTOR": "claude-code"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(fleet ls)",
+      "Bash(fleet ls *)",
+      "Bash(fleet containers)",
+      "Bash(fleet containers *)",
+      "Bash(fleet version)"
+    ]
+  }
+}

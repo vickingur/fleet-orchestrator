@@ -1,0 +1,6 @@
+# Fleet commands that only read state and run no config-defined code run without
+# approval. doctor and drift execute inventory and manifest commands on every
+# node, and exec, push, spawn and rm change things, so all of those still ask.
+prefix_rule(pattern=["fleet", "ls"], decision="allow")
+prefix_rule(pattern=["fleet", "containers"], decision="allow")
+prefix_rule(pattern=["fleet", "version"], decision="allow")
