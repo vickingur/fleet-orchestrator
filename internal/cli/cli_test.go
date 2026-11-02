@@ -741,6 +741,34 @@ func TestAdoptRejectsTraversal(t *testing.T) {
 	}
 }
 
+// An unquoted ~ reaches fleet already expanded to this machine's home; adopt
+// reads the same path under the node's home and writes it into the config.
+func TestAdoptAcceptsAShellExpandedPath(t *testing.T) {
+	h := newHarness(t)
+	h.runner.handler = tailscaleHandler(func(c execx.Cmd) (string, int, error) {
+		if c.Name == "ssh" && strings.Contains(decodeRemote(t, strings.Join(c.Args, " ")), `cat "$HOME"/'.claude/skills/demo/SKILL.md'`) {
+			return "node copy\n", 0, nil
+		}
+		return "", 1, fmt.Errorf("unexpected %s %v", c.Name, c.Args)
+	})
+	if err := os.WriteFile(filepath.Join(h.cfg, "home/manifest.toml"), []byte("[[tree]]\nsource = \"skills\"\ntarget = \"~/.claude/skills\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(h.cfg, "home/skills/demo"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(h.cfg, "home/skills/demo/SKILL.md"), []byte("config copy\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code := h.run("adopt", "fw", filepath.Join(h.app.Home, ".claude/skills/demo/SKILL.md")); code != 0 {
+		t.Fatalf("exit %d: %s", code, h.errb)
+	}
+	got, err := os.ReadFile(filepath.Join(h.cfg, "home/skills/demo/SKILL.md"))
+	if err != nil || string(got) != "node copy\n" {
+		t.Fatalf("adopted %q, %v", got, err)
+	}
+}
+
 func TestTruncateKeepsRunesWhole(t *testing.T) {
 	s := strings.Repeat("é", 300) // 2 bytes each
 	got := truncate(s, 501)
