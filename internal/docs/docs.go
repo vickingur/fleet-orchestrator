@@ -18,6 +18,15 @@ var tmpl = template.Must(template.New("fleet").Funcs(template.FuncMap{
 		return s
 	},
 	"cell": func(s string) string { return strings.ReplaceAll(s, "|", `\|`) },
+	// containerHost names the first node that hosts agent containers, if any.
+	"containerHost": func(nodes []inventory.Node) string {
+		for _, n := range nodes {
+			if n.Runtime != "" {
+				return n.Name
+			}
+		}
+		return ""
+	},
 }).Parse(`# Fleet
 
 Generated from fleet.toml by ` + "`fleet docs`" + `. Do not edit by hand.
@@ -33,8 +42,10 @@ Use the ` + "`fleet`" + ` command for anything that touches another machine.
 {{- range .Nodes}}
 | {{.Name}} | {{.Host}} | {{.OS}} | {{.Role}} | {{or_dash .Runtime}} | {{.User}} | {{cell .Notes}} |
 {{- end}}
+{{- with containerHost .Nodes}}
 
-Agent containers are addressed as ` + "`node:agent`" + `, for example ` + "`worker:builder`" + `.
+Agent containers are addressed as ` + "`node:agent`" + `, for example ` + "`{{.}}:builder`" + `.
+{{- end}}
 
 ## Transport
 

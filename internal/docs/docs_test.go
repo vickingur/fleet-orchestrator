@@ -38,10 +38,32 @@ runtime = "podman"
 		"Tailscale discovery is optional",
 		"this local machine's inventory name",
 		"unknown or absent tailnet",
+		"for example `b:builder`.\n\n## Transport",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q", want)
 		}
+	}
+}
+
+func TestRenderOmitsContainerAddressingWithoutAContainerHost(t *testing.T) {
+	inv, err := inventory.Parse([]byte(`
+[[node]]
+name = "a"
+host = "host-a"
+user = "u"
+os = "darwin"
+role = "controller"
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(Render(inv))
+	if strings.Contains(out, "Agent containers are addressed") {
+		t.Error("guide shows container addressing for a fleet with no container host")
+	}
+	if !strings.Contains(out, "| a | host-a | darwin | controller | - | u |  |\n\n## Transport") {
+		t.Error("node table is not followed by the Transport section")
 	}
 }
 
