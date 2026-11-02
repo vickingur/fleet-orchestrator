@@ -2,7 +2,7 @@
 
 Fleet is licensed under the [MIT License](LICENSE).
 
-Use a feature branch and keep one behavior change per review. Start from a clean checkout and run `make example`. Keep the development inventory fictional; use another checkout for deployment configuration.
+Use a feature branch and keep one behavior change per review. Tests use the fictional config in `examples/config`; keep it fictional, and keep a real fleet config in its own repository.
 
 Before sending a change:
 

@@ -22,6 +22,7 @@ type env struct {
 	t     *testing.T
 	repo  string // real repository root
 	src   string // isolated copy used as the controller's source checkout
+	cfg   string // controller's fleet config, at the default location under HOME
 	home  string // controller HOME
 	fleet string // fleet binary under test
 	node  string // container name
@@ -47,6 +48,7 @@ func setup(t *testing.T) *env {
 	repo, _ := filepath.Abs("../..")
 	root := t.TempDir()
 	e := &env{t: t, repo: repo, src: filepath.Join(root, "src"), home: filepath.Join(root, "home"),
+		cfg:   filepath.Join(root, "home", ".local", "share", "fleet", "config"),
 		fleet: filepath.Join(root, "fleet"), key: filepath.Join(root, "id_ed25519"), node: fmt.Sprintf("fleet-e2e-%d", time.Now().UnixNano())}
 	if err := os.MkdirAll(e.home, 0o755); err != nil {
 		t.Fatal(err)
@@ -74,6 +76,10 @@ func setup(t *testing.T) *env {
 
 	run(t, repo, "go", "build", "-o", e.fleet, "./cmd/fleet")
 	run(t, repo, "rsync", "-a", "--exclude", ".git", "--exclude", "dist", repo+"/", e.src+"/")
+	if err := os.MkdirAll(e.cfg, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	run(t, repo, "rsync", "-a", repo+"/examples/config/", e.cfg+"/")
 	run(t, root, "ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", e.key)
 
 	run(t, repo, "docker", "build", "-q", "-t", "fleet-e2e-node", "-f", "test/e2e/node.Containerfile", "test/e2e")
@@ -92,7 +98,7 @@ func setup(t *testing.T) *env {
 		`port = 2222`, "port = "+e.port,
 		`identity = "/path/to/private/test-key"`, fmt.Sprintf("identity = %q", e.key),
 	).Replace(string(example))
-	if err := os.WriteFile(filepath.Join(e.src, "fleet.toml"), []byte(inventory), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(e.cfg, "fleet.toml"), []byte(inventory), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -111,7 +117,8 @@ func setup(t *testing.T) *env {
 	return e
 }
 
-// fleetRun runs the fleet binary as the controller and returns output and exit code.
+// fleetRun runs the fleet binary as the controller, from its source checkout
+// with the config at the default location, and returns output and exit code.
 func (e *env) fleetRun(args ...string) (string, int) {
 	e.t.Helper()
 	cmd := exec.Command(e.fleet, args...)
@@ -226,7 +233,7 @@ func TestFleetEndToEnd(t *testing.T) {
 	})
 
 	skill := "~/.claude/skills/demo/SKILL.md"
-	repoSkill := filepath.Join(e.src, "home/skills/shared/demo/SKILL.md")
+	repoSkill := filepath.Join(e.cfg, "home/skills/shared/demo/SKILL.md")
 
 	t.Run("local edit plus repo change is a conflict and the edit survives", func(t *testing.T) {
 		e.onWorker(`printf 'edited on the node\n' > ` + skill)
@@ -252,7 +259,7 @@ func TestFleetEndToEnd(t *testing.T) {
 	})
 
 	t.Run("removing a skill from the repo prunes it from the node", func(t *testing.T) {
-		if err := os.RemoveAll(filepath.Join(e.src, "home/skills/shared/removable")); err != nil {
+		if err := os.RemoveAll(filepath.Join(e.cfg, "home/skills/shared/removable")); err != nil {
 			t.Fatal(err)
 		}
 		out := e.must(0, "push", "worker")

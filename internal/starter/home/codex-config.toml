@@ -1,0 +1,3 @@
+# Codex's commands record it as the actor in fleet's audit log.
+[shell_environment_policy.set]
+FLEET_ACTOR = "codex"

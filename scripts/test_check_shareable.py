@@ -44,5 +44,16 @@ class PrivacyTests(unittest.TestCase):
             errors, _ = privacy.scan(root, tracked=True, source_only=False)
             self.assertTrue(any('must not be tracked' in e for e in errors))
 
+    def test_snapshot_scan_rejects_inventory_at_the_root_only(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'examples/config').mkdir(parents=True)
+            (root / 'examples/config/fleet.toml').write_text('# fictional\n')
+            errors, _ = privacy.scan(root, tracked=False, source_only=False)
+            self.assertEqual(errors, [])
+            (root / 'fleet.toml').write_text('# fictional\n')
+            errors, _ = privacy.scan(root, tracked=False, source_only=False)
+            self.assertTrue(any('does not belong in the source' in e for e in errors))
+
     def test_accepts_documentation_fixtures(self):
         self.assertEqual(privacy.inspect(Path('fixture.txt'), b'worker.example.invalid 192.0.2.10'), [])

@@ -99,14 +99,16 @@ func commands() []command {
 		{"ssh", "open an interactive session on a target", (*App).cmdSSH},
 		{"push", "install the shared layer and fleet on a target (controller)", (*App).cmdPush},
 		{"apply", "apply the installed shared layer to this machine", (*App).cmdApply},
-		{"adopt", "copy edited shared files from a node back into the repo (controller)", (*App).cmdAdopt},
+		{"adopt", "copy edited shared files from a node back into the config (controller)", (*App).cmdAdopt},
 		{"restore", "list this machine's backup sets, or put one back: fleet restore [<set> [~/path ...]]", (*App).cmdRestore},
 		{"image", "build the agent container image on a node", (*App).cmdImage},
 		{"spawn", "start an agent container: fleet spawn <node> <agent>", (*App).cmdSpawn},
 		{"containers", "list agent containers on a node or all nodes", (*App).cmdContainers},
 		{"rm", "remove an agent container: fleet rm <node> <agent>", (*App).cmdRm},
 		{"codex", "attach this machine's Codex TUI to Codex on a node", (*App).cmdCodex},
-		{"docs", "regenerate FLEET.md from fleet.toml (controller)", (*App).cmdDocs},
+		{"docs", "regenerate FLEET.md in the fleet config from its fleet.toml", (*App).cmdDocs},
+		{"init", "create a fleet config, or clone one: fleet init [<git-url>]", (*App).cmdInit},
+		{"check", "validate a fleet config before pushing it: fleet check [dir]", (*App).cmdCheck},
 		{"version", "print the fleet version", (*App).cmdVersion},
 	}
 }
@@ -185,17 +187,18 @@ func (a *App) Capture(ctx context.Context, args ...string) (stdout, stderr []byt
 	return out.Bytes(), errb.Bytes(), code
 }
 
-// IsController reports whether this process runs from the fleet source
-// checkout, which push, drift and adopt require.
+// IsController reports whether this process can push: it finds both a fleet
+// config and the source checkout to build fleet from.
 func (a *App) IsController() bool {
-	_, err := a.sourceDir()
-	return err == nil
+	_, srcErr := a.sourceDir()
+	_, cfgErr := a.configDir()
+	return srcErr == nil && cfgErr == nil
 }
 
-// SourceDir returns the fleet checkout when this machine is the controller.
-func (a *App) SourceDir() (string, bool) {
-	src, err := a.sourceDir()
-	return src, err == nil
+// ConfigDir returns the fleet config when this machine has one.
+func (a *App) ConfigDir() (string, bool) {
+	cfg, err := a.configDir()
+	return cfg, err == nil
 }
 
 // StatePath is a file in fleet's per-machine state directory.
@@ -204,11 +207,11 @@ func (a *App) StatePath(name string) string { return filepath.Join(a.stateDir(),
 // AuditPath is this machine's audit log.
 func (a *App) AuditPath() string { return filepath.Join(a.stateDir(), "audit.jsonl") }
 
-// GuidePath is the agent guide to show: the checkout's on the controller,
+// GuidePath is the agent guide to show: the config's where there is one,
 // else the installed copy.
 func (a *App) GuidePath() string {
-	if src, err := a.sourceDir(); err == nil {
-		return filepath.Join(src, "FLEET.md")
+	if cfg, err := a.configDir(); err == nil {
+		return filepath.Join(cfg, "FLEET.md")
 	}
 	return filepath.Join(a.Home, ".config", "fleet", "FLEET.md")
 }
@@ -248,31 +251,57 @@ func (a *App) stateDir() string {
 	return filepath.Join(a.Home, ".local", "state", "fleet")
 }
 
-// sourceDir finds the fleet checkout: FLEET_SRC, the directory fleet runs in,
-// or the checkout the installed bundle was pushed from (only on the controller).
+// DefaultConfigDir is where fleet init puts the config and fleet looks for it,
+// next to the installed bundle.
+func (a *App) DefaultConfigDir() string {
+	return filepath.Join(a.Home, ".local", "share", "fleet", "config")
+}
+
+// sourceDir finds the source checkout push builds fleet from: FLEET_SRC, the
+// checkout fleet runs in, or the one the installed bundle was pushed from.
 func (a *App) sourceDir() (string, error) {
 	if d := a.Getenv("FLEET_SRC"); d != "" {
+		if !bundle.IsSource(d) {
+			return "", fmt.Errorf("FLEET_SRC=%s is not a fleet source checkout", d)
+		}
 		return d, nil
 	}
-	src, err := bundle.FindSource(a.Cwd)
-	if err == nil {
+	if src, err := bundle.FindSource(a.Cwd); err == nil {
 		return src, nil
 	}
 	if recorded, ok := bundle.InstalledSource(a.bundleDir()); ok {
 		return recorded, nil
 	}
-	return "", err
+	return "", errors.New("no fleet source checkout: run from one or set FLEET_SRC")
 }
 
-// inventory loads the inventory the command operates on: the source checkout's
-// on the controller (so edits take effect before a push), else the installed bundle's.
+// configDir finds the fleet config: FLEET_CONFIG, the config fleet runs in,
+// or the default location.
+func (a *App) configDir() (string, error) {
+	if d := a.Getenv("FLEET_CONFIG"); d != "" {
+		if !bundle.IsConfig(d) {
+			return "", fmt.Errorf("FLEET_CONFIG=%s is not a fleet config: it needs fleet.toml and home/manifest.toml", d)
+		}
+		return d, nil
+	}
+	if cfg, err := bundle.FindConfig(a.Cwd); err == nil {
+		return cfg, nil
+	}
+	if d := a.DefaultConfigDir(); bundle.IsConfig(d) {
+		return d, nil
+	}
+	return "", fmt.Errorf("no fleet config at %s: run fleet init, or set FLEET_CONFIG", a.DefaultConfigDir())
+}
+
+// inventory loads the inventory the command operates on: the config's where
+// there is one (so edits take effect before a push), else the installed bundle's.
 func (a *App) inventory() (*inventory.Inventory, error) {
-	if src, err := a.sourceDir(); err == nil {
-		return bundle.LoadInventory(src)
+	if cfg, err := a.configDir(); err == nil {
+		return bundle.LoadInventory(cfg)
 	}
 	inv, err := bundle.LoadInventory(a.bundleDir())
 	if err != nil {
-		return nil, fmt.Errorf("no inventory: not in the fleet repo and no installed bundle (%w)", err)
+		return nil, fmt.Errorf("no inventory: no fleet config and no installed bundle (%w)", err)
 	}
 	return inv, nil
 }

@@ -65,9 +65,11 @@ def scan(root: Path, *, tracked: bool, source_only: bool) -> tuple[list[str], in
             elif p.is_file():
                 errors.extend(inspect(rel, p.read_bytes()))
                 count += 1
-        inventory = root / 'fleet.toml'
-        if inventory.exists() and inventory.read_bytes() != (root / 'fleet.example.toml').read_bytes():
-            errors.append('fleet.toml: differs from fictional example; do not share deployment configuration')
+        # The source carries no inventory of its own; one at the root is a
+        # fleet config's, and only examples/config is fictional.
+        for name in ('fleet.toml', 'FLEET.md'):
+            if (root / name).exists():
+                errors.append(f'{name}: a fleet config file does not belong in the source; do not share it')
     return errors, count
 
 
