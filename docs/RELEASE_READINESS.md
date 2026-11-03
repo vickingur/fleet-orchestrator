@@ -1,6 +1,6 @@
 # Public-release readiness
 
-This repository remains private. This checklist records the preparation boundary; it is not authorization to change visibility, publish packages or create a release.
+This checklist records the preparation for making the repository public. It is not authorization to change visibility, publish packages or create a release.
 
 ## Prepared
 
@@ -19,7 +19,7 @@ This repository remains private. This checklist records the preparation boundary
 
 - [ ] Owner confirms rights/provenance of the retained project source.
 - [ ] Verify all needed source/data notices are present.
-- [ ] Select and verify a private security-reporting route and decide the support policy.
+- [x] Decided: no separate security policy, reporting channel or support commitment. Security boundaries are documented in the configuration guide.
 - [ ] Inspect the exact proposed public commit and all reachable new history for private data, including commit metadata, workflow logs and artifacts.
 - [ ] Confirm all CI jobs passed for that exact commit. Local success or a check on an earlier commit is insufficient.
 - [ ] Owner explicitly approves making this repository public.

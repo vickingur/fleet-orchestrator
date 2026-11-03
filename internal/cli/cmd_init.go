@@ -102,7 +102,7 @@ version = "codex --version"
 	if err != nil {
 		return fmt.Errorf("this machine does not make a valid inventory (%w); pass --name", err)
 	}
-	files := map[string][]byte{"fleet.toml": []byte(inv), "FLEET.md": docs.Render(parsed)}
+	files := map[string][]byte{"fleet.toml": []byte(inv), "FLEET.md": docs.Render(parsed), "README.md": starter.Readme}
 	err = fs.WalkDir(starter.Home, "home", func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
@@ -127,8 +127,8 @@ version = "codex --version"
 		return err
 	}
 	a.printf("created a fleet config in %s with %s as the controller\n", dir, name)
-	a.println("next: add your other machines to fleet.toml, run fleet docs and fleet check,")
-	a.println("commit, and push only to a private remote: the inventory names your machines")
+	a.println("next: add your other machines to fleet.toml, run fleet docs and fleet check, and commit")
+	a.println("keep it private: it maps your machines, so push it only to a private remote")
 	return nil
 }
 

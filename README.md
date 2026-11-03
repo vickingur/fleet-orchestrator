@@ -2,7 +2,7 @@
 
 A Go CLI for managing machines over SSH, synchronizing agent configuration, and managing agent containers, with a terminal UI and optional Tailscale discovery. Fleet provides command execution, configuration drift checks, conflict-aware updates, backups and restoration, and JSON output for automation.
 
-This repository is being prepared for public release. It contains reusable source and fictional examples. Fleet is licensed under [MIT](LICENSE); see [provenance and licensing](docs/PROVENANCE.md).
+This repository contains the tool and fictional examples. Fleet is licensed under [MIT](LICENSE); see [provenance and licensing](docs/PROVENANCE.md).
 
 ## Build and check
 
@@ -16,7 +16,7 @@ make build
 make check
 ```
 
-Repository access requires authorization while it is private. These steps build and test locally against the fictional config in `examples/config`; they do not install Fleet or contact configured nodes.
+These steps build and test locally against the fictional config in `examples/config`; they do not install Fleet or contact configured nodes.
 
 The test gate runs formatting, vet, lint, race-enabled Go tests, privacy-checker regression tests, and a scan of staged Git blobs. CI checks Linux and macOS and runs a separate Docker SSH integration test. Run `make e2e` locally with Docker available; the test creates an isolated controller home, temporary keys, and a throwaway SSH container. It skips without Docker locally; CI explicitly requires Docker first.
 
@@ -43,11 +43,14 @@ Tailscale is still used for discovery/status: `fleet ls` reports unknown status 
 | `fleet check` | Validate a fleet config before pushing it |
 | `fleet restore` | List local backup sets |
 
-The names in this table are fictional. `doctor` and `drift` can execute commands defined in the inventory or manifest; review configuration before running them. `push`, `apply`, `adopt`, restore with arguments, and container operations can change files or machines. See [configuration](docs/CONFIGURATION.md) and [security boundaries](SECURITY.md).
+The names in this table are fictional. `doctor` and `drift` can execute commands defined in the inventory or manifest; review configuration before running them. `push`, `apply`, `adopt`, restore with arguments, and container operations can change files or machines. See [configuration](docs/CONFIGURATION.md) and its [security boundaries](docs/CONFIGURATION.md#security-boundaries).
 
 ## The tool and your fleet config
 
-This repository is the tool. What it deploys lives in a fleet config: your inventory, generated node guide, `home/` shared layer and optional tailnet policy, kept in its own private Git repository. Fleet looks for it through `FLEET_CONFIG`, the directory it runs in, or `~/.local/share/fleet/config`, where `fleet init` creates one, or clones yours on a further controller. The [installation guide](docs/INSTALLATION.md) walks through it; [`examples/config`](examples/config) is a fictional one.
+This repository is the tool. What it deploys lives in a fleet config: your inventory, generated node guide, `home/` shared layer and optional tailnet policy, kept in its own Git repository.
+
+> **Keep your fleet config private.** It maps your machines: host names, accounts, SSH identity paths, tailnet addresses and access policy, plus the instructions and settings your agents run with. Push it only to a private remote. Never commit it to this repository or a fork of it, and never paste its contents into a public issue or pull request.
+ Fleet looks for it through `FLEET_CONFIG`, the directory it runs in, or `~/.local/share/fleet/config`, where `fleet init` creates one, or clones yours on a further controller. The [installation guide](docs/INSTALLATION.md) walks through it; [`examples/config`](examples/config) is a fictional one.
 
 | This repository | Your fleet config |
 |---|---|
@@ -63,6 +66,6 @@ Before committing, stage the intended changes and run `make check`. `make privac
 - [Installation](docs/INSTALLATION.md)
 - [Configuration and examples](docs/CONFIGURATION.md)
 - [Contributing](CONTRIBUTING.md)
-- [Security](SECURITY.md)
+- [Security boundaries](docs/CONFIGURATION.md#security-boundaries)
 - [Provenance and licensing](docs/PROVENANCE.md)
 - [Public-release checklist](docs/RELEASE_READINESS.md)
