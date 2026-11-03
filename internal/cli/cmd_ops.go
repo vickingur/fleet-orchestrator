@@ -295,6 +295,9 @@ func (a *App) cmdSSH(ctx context.Context, args []string) error {
 		}
 		script = "exec podman exec -it " + remote.ContainerName(t.Agent) + " " + remote.ShellCommand(inner)
 	}
+	if err := ex.mayReach(t); err != nil {
+		return err
+	}
 	var c execx.Cmd
 	if t.Node.Name == ex.self {
 		shell := a.Getenv("SHELL")

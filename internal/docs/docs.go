@@ -18,6 +18,16 @@ var tmpl = template.Must(template.New("fleet").Funcs(template.FuncMap{
 		return s
 	},
 	"cell": func(s string) string { return strings.ReplaceAll(s, "|", `\|`) },
+	// reaches renders a node's reaches list: absent means every node.
+	"reaches": func(n inventory.Node) string {
+		switch {
+		case n.Reaches == nil:
+			return "all"
+		case len(*n.Reaches) == 0:
+			return "none"
+		}
+		return strings.Join(*n.Reaches, ", ")
+	},
 	// containerHost names the first node that hosts agent containers, if any.
 	"containerHost": func(nodes []inventory.Node) string {
 		for _, n := range nodes {
@@ -37,11 +47,14 @@ Use the ` + "`fleet`" + ` command for anything that touches another machine.
 
 ## Nodes
 
-| Node | SSH host | OS | Role | Containers | SSH user | Notes |
-|---|---|---|---|---|---|---|
+| Node | SSH host | OS | Role | Containers | SSH user | Reaches | Notes |
+|---|---|---|---|---|---|---|---|
 {{- range .Nodes}}
-| {{.Name}} | {{.Host}} | {{.OS}} | {{.Role}} | {{or_dash .Runtime}} | {{.User}} | {{cell .Notes}} |
+| {{.Name}} | {{.Host}} | {{.OS}} | {{.Role}} | {{or_dash .Runtime}} | {{.User}} | {{reaches .}} | {{cell .Notes}} |
 {{- end}}
+
+From a node, fleet connects only to the nodes in its Reaches column and refuses the
+others before connecting. Plan cross-machine work from a node that reaches the target.
 {{- with containerHost .Nodes}}
 
 Agent containers are addressed as ` + "`node:agent`" + `, for example ` + "`{{.}}:builder`" + `.
