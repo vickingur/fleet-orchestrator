@@ -8,10 +8,13 @@ Use the `fleet` command for anything that touches another machine.
 
 ## Nodes
 
-| Node | SSH host | OS | Role | Containers | SSH user | Notes |
-|---|---|---|---|---|---|---|
-| laptop | laptop.example.invalid | darwin | controller | - | operator |  |
-| worker | worker.example.invalid | linux | member | podman | operator |  |
+| Node | SSH host | OS | Role | Containers | SSH user | Reaches | Notes |
+|---|---|---|---|---|---|---|---|
+| laptop | laptop.example.invalid | darwin | controller | - | operator | all |  |
+| worker | worker.example.invalid | linux | member | podman | operator | all |  |
+
+From a node, fleet connects only to the nodes in its Reaches column and refuses the
+others before connecting. Plan cross-machine work from a node that reaches the target.
 
 Agent containers are addressed as `node:agent`, for example `worker:builder`.
 

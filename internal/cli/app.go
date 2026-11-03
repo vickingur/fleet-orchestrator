@@ -348,6 +348,7 @@ func (a *App) selfNode(ctx context.Context, inv *inventory.Inventory) (string, e
 // executor runs scripts on targets, locally or over SSH, and audits each run.
 type executor struct {
 	app  *App
+	inv  *inventory.Inventory
 	self string
 	log  *audit.Log
 }
@@ -357,7 +358,24 @@ func (a *App) executor(ctx context.Context, inv *inventory.Inventory) (*executor
 	if err != nil {
 		return nil, err
 	}
-	return &executor{app: a, self: self, log: &audit.Log{Path: filepath.Join(a.stateDir(), "audit.jsonl")}}, nil
+	return &executor{app: a, inv: inv, self: self, log: &audit.Log{Path: filepath.Join(a.stateDir(), "audit.jsonl")}}, nil
+}
+
+// mayReach refuses a target the inventory does not let this node connect to,
+// before any connection is tried. Where fleet cannot tell which node it runs
+// on, such as inside an agent container, nothing is refused here.
+func (e *executor) mayReach(t inventory.Target) error {
+	if e.self == "" {
+		return nil
+	}
+	self, err := e.inv.Node(e.self)
+	if err != nil {
+		return err
+	}
+	if self.CanReach(t.Node.Name) {
+		return nil
+	}
+	return fmt.Errorf("%s does not reach %s: its reaches list in fleet.toml is [%s]", self.Name, t.Node.Name, strings.Join(*self.Reaches, ", "))
 }
 
 type runSpec struct {
@@ -382,6 +400,9 @@ func (e *executor) cmdFor(t inventory.Target, script string) execx.Cmd {
 }
 
 func (e *executor) run(ctx context.Context, s runSpec) (execx.Result, error) {
+	if err := e.mayReach(s.target); err != nil {
+		return execx.Result{}, err
+	}
 	if err := os.MkdirAll(e.app.stateDir(), 0o700); err != nil {
 		return execx.Result{}, err
 	}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -39,6 +40,15 @@ type Node struct {
 	Runtime  string `toml:"runtime"`
 	Identity string `toml:"identity"`
 	Notes    string `toml:"notes"`
+	// Reaches lists the nodes fleet on this node may connect to. Absent, it
+	// reaches every node; an empty list reaches none.
+	Reaches *[]string `toml:"reaches"`
+}
+
+// CanReach reports whether fleet running on n may connect to the named node.
+// A node always reaches itself: its commands run locally.
+func (n Node) CanReach(name string) bool {
+	return n.Reaches == nil || name == n.Name || slices.Contains(*n.Reaches, name)
 }
 
 // SSHPort returns the configured port, or the SSH protocol port 22 when unset.
@@ -135,6 +145,33 @@ func (inv *Inventory) validate() error {
 	}
 	if controllers != 1 {
 		errs = append(errs, fmt.Errorf("inventory needs exactly one controller node, found %d", controllers))
+	}
+	for i, n := range inv.Nodes {
+		if n.Reaches == nil {
+			continue
+		}
+		where := fmt.Sprintf("node[%d] %q: reaches", i, n.Name)
+		listed := map[string]bool{}
+		for _, r := range *n.Reaches {
+			switch {
+			case !seen[r]:
+				errs = append(errs, fmt.Errorf("%s unknown node %q", where, r))
+			case r == n.Name:
+				errs = append(errs, fmt.Errorf("%s lists the node itself, which it always reaches", where))
+			case listed[r]:
+				errs = append(errs, fmt.Errorf("%s lists %q twice", where, r))
+			}
+			listed[r] = true
+		}
+		if n.Role != Controller {
+			continue
+		}
+		// push, drift and doctor run on the controller against every node.
+		for _, m := range inv.Nodes {
+			if m.Name != n.Name && !listed[m.Name] {
+				errs = append(errs, fmt.Errorf("%s must include %q: the controller pushes to every node", where, m.Name))
+			}
+		}
 	}
 	for i, t := range inv.Tools {
 		if t.Name == "" || t.Version == "" {

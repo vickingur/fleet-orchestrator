@@ -25,14 +25,24 @@ user = "v"
 os = "linux"
 role = "member"
 runtime = "podman"
+reaches = []
+
+[[node]]
+name = "c"
+host = "host-c"
+user = "w"
+os = "linux"
+role = "member"
+reaches = ["a"]
 `))
 	if err != nil {
 		t.Fatal(err)
 	}
 	out := string(Render(inv))
 	for _, want := range []string{
-		"| a | host-a | darwin | controller | - | u | pipe \\| inside |",
-		"| b | host-b | linux | member | podman | v |  |",
+		"| a | host-a | darwin | controller | - | u | all | pipe \\| inside |",
+		"| b | host-b | linux | member | podman | v | none |  |",
+		"| c | host-c | linux | member | - | w | a |  |",
 		"fleet exec [--timeout 10m] [--detach] <target> -- <command>",
 		"Do not use sudo",
 		"describe private machines",
@@ -63,8 +73,8 @@ role = "controller"
 	if strings.Contains(out, "Agent containers are addressed") {
 		t.Error("guide shows container addressing for a fleet with no container host")
 	}
-	if !strings.Contains(out, "| a | host-a | darwin | controller | - | u |  |\n\n## Transport") {
-		t.Error("node table is not followed by the Transport section")
+	if !strings.Contains(out, "before connecting. Plan cross-machine work from a node that reaches the target.\n\n## Transport") {
+		t.Error("the reach note is not followed by the Transport section")
 	}
 }
 

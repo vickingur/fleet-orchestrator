@@ -31,6 +31,8 @@ These values are fictional. `name` is Fleet's target alias. `host` can be a reac
 
 There must be exactly one controller. Supported `os` values are `darwin` and `linux`; roles are `controller` and `member`. `runtime` is absent or `podman`. Optional `port` defaults to SSH port 22; optional `identity` names a private, local identity path. Never commit the key itself. Unknown TOML keys and invalid names fail validation. A tool's `version` is a shell command executed by `doctor`, not descriptive text.
 
+Not every machine has to be able to connect to every other. Optional `reaches` lists the nodes fleet on that node may connect to: `reaches = ["laptop"]`, or `reaches = []` for a node that only receives. Left out, a node reaches every node. The controller must reach every node, since it pushes to them. From a node, fleet refuses a target outside its list before connecting, and the generated guide shows each node's list so agents plan around it. `reaches` records your SSH setup rather than changing it; authorize keys to match, as described in [SSH access between machines](INSTALLATION.md#ssh-access-between-machines).
+
 After editing the inventory, run `fleet docs` to regenerate `FLEET.md`, then `fleet check`. The guide names your machines; keep it private with the rest of the config.
 
 ## Transport support and limits

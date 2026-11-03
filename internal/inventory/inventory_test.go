@@ -1,6 +1,7 @@
 package inventory
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -135,5 +136,63 @@ func TestSortedNodes(t *testing.T) {
 	}
 	if inv.Nodes[0].Name != "worker" {
 		t.Fatal("SortedNodes mutated inventory order")
+	}
+}
+
+const reachBase = `
+[[node]]
+name = "ctl"
+host = "ctl"
+user = "u"
+os = "darwin"
+role = "controller"
+%s
+
+[[node]]
+name = "a"
+host = "a"
+user = "u"
+os = "linux"
+role = "member"
+%s
+
+[[node]]
+name = "b"
+host = "b"
+user = "u"
+os = "linux"
+role = "member"
+`
+
+func TestReaches(t *testing.T) {
+	inv, err := Parse([]byte(fmt.Sprintf(reachBase, ``, `reaches = []`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctl, _ := inv.Node("ctl")
+	a, _ := inv.Node("a")
+	b, _ := inv.Node("b")
+	if !ctl.CanReach("a") || !ctl.CanReach("b") || !b.CanReach("ctl") {
+		t.Fatal("a node without a reaches list must reach every node")
+	}
+	if a.CanReach("ctl") || a.CanReach("b") || !a.CanReach("a") {
+		t.Fatal("reaches = [] must reach only the node itself")
+	}
+	inv, err = Parse([]byte(fmt.Sprintf(reachBase, `reaches = ["a", "b"]`, `reaches = ["b"]`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a, _ := inv.Node("a"); !a.CanReach("b") || a.CanReach("ctl") {
+		t.Fatal("a listed node must be reached and an unlisted one refused")
+	}
+	for _, tc := range []struct{ ctl, a, want string }{
+		{``, `reaches = ["nope"]`, `unknown node "nope"`},
+		{``, `reaches = ["a"]`, "lists the node itself"},
+		{``, `reaches = ["b", "b"]`, `lists "b" twice`},
+		{`reaches = ["a"]`, ``, `must include "b": the controller pushes to every node`},
+	} {
+		if _, err := Parse([]byte(fmt.Sprintf(reachBase, tc.ctl, tc.a))); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("ctl %q a %q: err = %v, want %q", tc.ctl, tc.a, err, tc.want)
+		}
 	}
 }

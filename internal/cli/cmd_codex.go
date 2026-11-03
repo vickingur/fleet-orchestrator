@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/vickingur/fleet-orchestrator/internal/execx"
+	"github.com/vickingur/fleet-orchestrator/internal/inventory"
 )
 
 // codexServeScript starts Codex's app-server on the node's loopback with a
@@ -59,6 +60,9 @@ func (a *App) cmdCodex(ctx context.Context, args []string) (retErr error) {
 	}
 	if node.Name == ex.self {
 		return usagef("%s is this machine; run codex directly", name)
+	}
+	if err := ex.mayReach(inventory.Target{Node: node}); err != nil {
+		return err
 	}
 	token, err := randomHex(32)
 	if err != nil {

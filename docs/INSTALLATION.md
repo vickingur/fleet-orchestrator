@@ -33,10 +33,25 @@ It lands in `~/.local/share/fleet/config`, where fleet finds it from any directo
 3. Run `fleet docs` to regenerate the node guide, then `fleet check`.
 4. Commit, and push only to a private remote, for example one created with `gh repo create <name> --private --source . --push`. Check the visibility before the first push.
 5. Use `./dist/fleet` until fleet is installed. `push` builds fleet for each node from this checkout; it finds it from the directory you run in, `FLEET_SRC`, or the path recorded by the last push.
-6. Confirm ordinary OpenSSH access works under your account. Set `FLEET_SELF` to the inventory name of this local machine for operation without Tailscale. This identifies which commands execute locally; it must not name the remote destination. Configure credentials and host trust separately.
+6. Set up SSH access between your machines, as described below. Set `FLEET_SELF` to the inventory name of this local machine for operation without Tailscale. This identifies which commands execute locally; it must not name the remote destination. Configure credentials and host trust separately.
 7. Review `fleet doctor <node>` and `fleet drift <node>` before choosing to deploy with `fleet push <node>`. Push this machine first: it installs `fleet` on your PATH. If you use Tailscale, `fleet ls` additionally shows tailnet status; it is not an SSH reachability check.
 
 A push installs the bundle and binary and applies your configured shared layer. It may merge settings, replace managed files or run manifest fixes. Backups and an audit log are maintained in Fleet's state directory; read the generated guide for locations. This guide describes deployment steps; repository checks do not perform them.
+
+## SSH access between machines
+
+Fleet connects with the system OpenSSH client and your keys, and adds its own safety options. It never prompts: it runs with `BatchMode=yes`, so a password, passphrase or unknown-host question fails the command instead of waiting for an answer.
+
+Set up each direction a node should connect in: from the controller to every node, and from each other node to whatever its `reaches` list allows.
+
+1. Allow incoming SSH on the target. On macOS, turn on System Settings → General → Sharing → Remote Login. On Linux, install OpenSSH and run `sudo systemctl enable --now sshd`.
+2. On the connecting machine, create a key if it has none: `ssh-keygen -t ed25519`. Fleet cannot answer a passphrase prompt, so either leave the passphrase empty or keep the key unlocked in an agent; on macOS, `ssh-add --apple-use-keychain ~/.ssh/id_ed25519`.
+3. Authorize the key on the target: `ssh-copy-id user@host` appends it to the target's `~/.ssh/authorized_keys`.
+4. Check it the way fleet connects: `ssh -o BatchMode=yes user@host true` must succeed without a prompt. Then run `fleet doctor <node>`.
+
+Each machine connects with its own key. Fleet turns off agent forwarding, so a key on the controller never travels to another node. Authorize only the directions you want, and record them in `reaches` so that fleet and agents know the others are refused. To use a dedicated key for a node, set the node's `identity` to the private key's path; fleet then offers only that key.
+
+Fleet keeps its own known-hosts file, `~/.local/state/fleet/known_hosts`. It accepts a host's key on first contact and rejects a changed key from then on. Check that the first contact really is your machine. After a machine is legitimately reinstalled, remove its old entry with `ssh-keygen -R <host> -f ~/.local/state/fleet/known_hosts`.
 
 ## Containers
 
