@@ -104,3 +104,18 @@ Exit codes are 0 for success, 1 for an error, 2 for usage errors, 3 for unresolv
 - `FLEET_SSH_PROXY`: trusted SSH proxy command, used by userspace-network containers.
 
 These values can affect which machines or commands Fleet operates on. Keep fleet config values out of this source, CI and issue reports. SSH host keys, state, backups and audits are private runtime data.
+
+## Security boundaries
+
+Fleet executes trusted commands and synchronizes configuration under the user's account. Inventory tool commands, manifest checks/fixes, SSH proxy configuration and managed instructions are code or operational input. Do not run a checkout or bundle you do not trust.
+
+`FLEET_SELF` identifies the machine running Fleet. Commands targeting that inventory name execute locally. Verify it before operating; do not set it to a remote destination merely to avoid discovery. DNS/IPv4 SSH access does not require Tailscale, but the discovery UI and default container proxy retain Tailscale-specific behavior.
+
+- SSH uses a Fleet-owned known-hosts file with first-use acceptance (`accept-new`). Changed keys are rejected, but first contact still requires trust in the network and target identity.
+- Ordinary SSH operations disable agent/X11 forwarding and clear configured port forwards. The Codex attachment command intentionally opens a dedicated local tunnel and uses a token handshake.
+- Agent containers use a restricted runtime configuration. For containers joined to Tailscale, tailnet reachability also depends on the deployed policy. Containers spawned without tailnet enrollment still have their ordinary container networking. The example policy is not automatically installed and is not evidence of the state of any live network.
+- Drift can run configured ensure checks. A dry-run label does not make arbitrary manifest commands safe.
+- A fleet config is private: its inventory, generated guide and policy map machines, accounts, SSH identities and network addresses, and its shared layer is code agents run. Keep it in a repository with a private remote, never in this repository or a fork. Generated deployment bundles include the inventory and the controller source path. Backups, registry, credentials and audit logs are private data too.
+- Container recipes fetch upstream installers and a latest tool release. A reproducible, version-pinned container supply chain remains release work.
+
+If a credential is ever committed to a fleet config, deleting it in a later commit is not enough: it stays in Git history and any clone. Replace the credential.
